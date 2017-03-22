@@ -1,3 +1,16 @@
+.idea
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake-build-debug/
+cmake-build-default/
+cmake-build-minsizerel/
+cmake-build-release/
+cmake-build-relwithdebinfo/
+cmake_install.cmake
+dist/
+libwmdrelax.egg-info/
+
 # Compiled Object files
 *.slo
 *.lo
