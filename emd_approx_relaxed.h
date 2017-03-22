@@ -2,17 +2,16 @@
 
 #include <cstdint>
 #include <algorithm>
-#include <memory>
 
+/// @author Wojciech Jabłoński <wj359634@students.mimuw.edu.pl>
 template <typename T>
 T emd_approx_relaxed(
-  const T* w1,
-  const T* w2,
-  const T* dist,
-  uint32_t size,
-  std::shared_ptr<int32_t> cache_shared  // at least size elements
+    const T *__restrict__ w1,
+    const T *__restrict__ w2,
+    const T *__restrict__ dist,
+    uint32_t size,
+    int32_t *__restrict__ cache  // at least size elements
 ) {
-  int32_t* cache = cache_shared.get();
   for (size_t i = 0; i < size; i++) {
     cache[i] = i;
   }
@@ -24,20 +23,20 @@ T emd_approx_relaxed(
       if (w1[i] != T(0)) {
         std::sort(
           cache,
-          cache+size,
+          cache + size,
           [&](const int a, const int b) {
-            return dist[i*size + a] < dist[i*size + b];
+            return dist[i*size + a] < dist[i * size + b];
           });
 
         T remaining = w1[i];
         for (size_t j = 0; j < size; j++) {
           int w = cache[j];
           if (remaining < w2[w]) {
-            acc += remaining * dist[i*size + w];
+            acc += remaining * dist[i * size + w];
             break;
           } else {
             remaining -= w2[w];
-            acc += w2[w]*dist[i*size + w];
+            acc += w2[w] * dist[i * size + w];
           }
         }
       }
