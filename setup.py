@@ -1,11 +1,12 @@
 from multiprocessing import cpu_count
 import os
-from setuptools import setup
+from setuptools import setup, Extension
 from setuptools.command.build_py import build_py
 from setuptools.dist import Distribution
 from shutil import copyfile
 from subprocess import check_call
 from sys import platform
+import numpy
 
 
 PACKAGE = "wmd"
@@ -70,10 +71,19 @@ setup(
     author_email="vadim@sourced.tech",
     url="https://github.com/src-d/wmd-relax",
     download_url="https://github.com/src-d/wmd-relax",
+    ext_modules=[Extension("libwmdrelax", sources=[
+        "python.cc", "or-tools/src/graph/min_cost_flow.cc",
+        "or-tools/src/graph/max_flow.cc", "or-tools/src/base/stringprintf.cc",
+        "or-tools/src/base/logging.cc", "or-tools/src/base/sysinfo.cc",
+        "or-tools/src/util/stats.cc"], extra_compile_args=[
+        "-fopenmp" if platform != "darwin" else "", "-std=c++11",
+        "-march=native", "-ftree-vectorize", "-DNDEBUG", "-Wno-sign-compare",
+        "-flto"], extra_link_args=["-flto"], include_dirs=[
+        numpy.get_include(), "or-tools/src"])],
     packages=[PACKAGE],
     install_requires=["numpy"],
-    distclass=BinaryDistribution,
-    cmdclass={"build_py": CMakeBuild},
+    # distclass=BinaryDistribution,
+    # cmdclass={"build_py": CMakeBuild},
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",

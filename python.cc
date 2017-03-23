@@ -4,7 +4,6 @@
 #include <Python.h>
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/arrayobject.h>
-#include <cuda_runtime_api.h>
 #include "emd.h"
 #include "emd_relaxed.h"
 
