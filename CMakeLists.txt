@@ -32,8 +32,11 @@ endif()
 if (NOT DEFINED CUDA_ARCH)
   set(CUDA_ARCH "61")
 endif()
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -Werror -DCUDA_ARCH=${CUDA_ARCH} -std=c++11 ${OpenMP_CXX_FLAGS}")
-set(SOURCE_FILES )
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -Wno-sign-compare -Werror -DCUDA_ARCH=${CUDA_ARCH} -std=c++11 ${OpenMP_CXX_FLAGS}")
+include_directories(or-tools/src)
+set(SOURCE_FILES or-tools/src/graph/min_cost_flow.cc or-tools/src/graph/max_flow.cc
+                 or-tools/src/base/stringprintf.cc or-tools/src/base/logging.cc
+                 or-tools/src/base/sysinfo.cc or-tools/src/util/stats.cc)
 if (PYTHONLIBS_FOUND)
   list(APPEND SOURCE_FILES python.cc)
 endif()
