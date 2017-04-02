@@ -5,13 +5,9 @@
 
 /// @author Wojciech Jabłoński <wj359634@students.mimuw.edu.pl>
 template <typename T>
-T emd_relaxed(
-    const T *__restrict__ w1,
-    const T *__restrict__ w2,
-    const T *__restrict__ dist,
-    uint32_t size,
-    int32_t *__restrict__ cache  // at least size elements
-) {
+T emd_relaxed(const T *__restrict__ w1, const T *__restrict__ w2,
+              const T *__restrict__ dist, uint32_t size,
+              int32_t *__restrict__ cache) {  // at least size elements
   for (size_t i = 0; i < size; i++) {
     cache[i] = i;
   }

@@ -14,17 +14,17 @@ const int64_t MASS_MULT = 1000 * 1000 * 1000;   // weights quantization constant
 const int64_t COST_MULT = 1000 * 1000;          // costs quantization constant
 
 
-class Buffer {
+class EMDCache {
  public:
   enum AllocationError {
     kAllocationErrorSuccess = 0,
-    /// Can't allocate empty buffer.
+    /// Can't allocate empty cache.
     kAllocationErrorInvalidSize,
-    /// You have to deallocate the buffer first before allocating again.
+    /// You have to deallocate the cache first before allocating again.
     kAllocationErrorDeallocationNeeded
   };
 
-  Buffer() : size_(0) {}
+  EMDCache() : size_(0) {}
 
   bool* side() const noexcept {
     return side_.get();
@@ -42,6 +42,10 @@ class Buffer {
     return size_;
   }
 
+  operations_research::SimpleMinCostFlow& min_cost_flow() const noexcept {
+    return min_cost_flow_;
+  }
+
   AllocationError allocate(size_t size) {
     if (size == 0) {
       return kAllocationErrorInvalidSize;
@@ -53,6 +57,7 @@ class Buffer {
     side_.reset(new bool[size]);
     demand_.reset(new int64_t[size]);
     cost_.reset(new int64_t[size * size]);
+    return kAllocationErrorSuccess;
   }
 
   void deallocate() noexcept {
@@ -64,9 +69,10 @@ class Buffer {
   mutable std::unique_ptr<int64_t[]> demand_;
   mutable std::unique_ptr<int64_t[]> cost_;
   size_t size_;
+  mutable operations_research::SimpleMinCostFlow min_cost_flow_;
 
-  Buffer(const Buffer&) = delete;
-  Buffer& operator=(const Buffer&) = delete;
+  EMDCache(const EMDCache&) = delete;
+  EMDCache& operator=(const EMDCache&) = delete;
 };
 
 
@@ -114,13 +120,13 @@ void convert_costs(const T*__restrict__ in, const bool*__restrict__ side,
 
 template <typename T>
 T emd(const T*__restrict__ w1, const T*__restrict__ w2,
-      const T*__restrict__ dist, const Buffer& buffer, uint32_t size) {
+      const T*__restrict__ dist, uint32_t size, const EMDCache& cache) {
   assert(w1 && w2 && dist);
   assert(size > 0);
-  assert(buffer.get_size() >= size && "Buffer not big enough.");
-  bool* side = buffer.side();
-  int64_t* demand = buffer.demand();
-  int64_t* cost = buffer.cost();
+  assert(cache.get_size() >= size && "EMDCache not big enough.");
+  bool* side = cache.side();
+  int64_t* demand = cache.demand();
+  int64_t* cost = cache.cost();
 
   memset(demand, 0, size * sizeof(demand[0]));
   convert_weights(w1, 0, demand, size);
@@ -131,7 +137,7 @@ T emd(const T*__restrict__ w1, const T*__restrict__ w2,
   }
   convert_costs(dist, side, cost, size);
 
-  operations_research::SimpleMinCostFlow min_cost_flow;
+  auto& min_cost_flow = cache.min_cost_flow();
   for (size_t i = 0; i < size; i++) {
     for (size_t j = 0; j < size; j++) {
       if (!side[i] && side[j]) {
@@ -145,6 +151,7 @@ T emd(const T*__restrict__ w1, const T*__restrict__ w2,
   }
   min_cost_flow.Solve();
   auto result = min_cost_flow.OptimalCost();
+  min_cost_flow.Reset();
 
   return T((result / MASS_MULT) / COST_MULT);
 }

@@ -10,14 +10,37 @@
 
 static char module_docstring[] =
     "This module provides functions which accelerate Word Mover's Distance calculation.";
-static char approximate_relaxed_docstring[] =
+static char emd_relaxed_docstring[] =
     "Approximates WMD by relaxing one of the two conditions and taking the max.";
+static char emd_relaxed_cache_init_docstring[] =
+    "Allocates the cache for emd_relaxed().";
+static char emd_relaxed_cache_fini_docstring[] =
+    "Deallocates the cache for emd_relaxed().";
+static char emd_docstring[] = "Calculates the exact WMD.";
+static char emd_cache_init_docstring[] = "Allocates the cache for emd().";
+static char emd_cache_fini_docstring[] = "Deallocates the cache for emd().";
 
-static PyObject *py_approximate_relaxed(PyObject *self, PyObject *args, PyObject *kwargs);
+
+static PyObject *py_emd_relaxed(PyObject *self, PyObject *args, PyObject *kwargs);
+static PyObject *py_emd(PyObject *self, PyObject *args, PyObject *kwargs);
+static PyObject *py_emd_relaxed_cache_init(PyObject *self, PyObject *args, PyObject *kwargs);
+static PyObject *py_emd_relaxed_cache_fini(PyObject *self, PyObject *args, PyObject *kwargs);
+static PyObject *py_emd_cache_init(PyObject *self, PyObject *args, PyObject *kwargs);
+static PyObject *py_emd_cache_fini(PyObject *self, PyObject *args, PyObject *kwargs);
 
 static PyMethodDef module_functions[] = {
-  {"approximate_relaxed", reinterpret_cast<PyCFunction>(py_approximate_relaxed),
-   METH_VARARGS | METH_KEYWORDS, approximate_relaxed_docstring},
+  {"emd_relaxed", reinterpret_cast<PyCFunction>(py_emd_relaxed),
+   METH_VARARGS | METH_KEYWORDS, emd_relaxed_docstring},
+  {"emd_relaxed_cache_init", reinterpret_cast<PyCFunction>(py_emd_relaxed_cache_init),
+   METH_VARARGS, emd_relaxed_cache_init_docstring},
+  {"emd_relaxed_cache_fini", reinterpret_cast<PyCFunction>(py_emd_relaxed_cache_fini),
+   METH_VARARGS, emd_relaxed_cache_fini_docstring},
+  {"emd", reinterpret_cast<PyCFunction>(py_emd),
+   METH_VARARGS | METH_KEYWORDS, emd_docstring},
+  {"emd_cache_init", reinterpret_cast<PyCFunction>(py_emd_cache_init),
+   METH_VARARGS, emd_cache_init_docstring},
+  {"emd_cache_fini", reinterpret_cast<PyCFunction>(py_emd_cache_fini),
+   METH_VARARGS, emd_cache_fini_docstring},
   {NULL, NULL, 0, NULL}
 };
 
@@ -63,7 +86,10 @@ class _pyobj : public pyobj_parent<O> {
 using pyobj = _pyobj<PyObject>;
 using pyarray = _pyobj<PyArrayObject>;
 
-static PyObject *py_approximate_relaxed(PyObject *self, PyObject *args, PyObject *kwargs) {
+static PyObject* call_entry(
+    PyObject *self, PyObject *args, PyObject *kwargs,
+    std::function<float(const float*, const float*, const float*, int,
+                        PyObject*)> payload) {
   PyObject *w1_obj, *w2_obj, *dist_obj, *cache_obj = Py_None;
   static const char *kwlist[] = {"w1", "w2", "dist", "cache", NULL};
   if (!PyArg_ParseTupleAndKeywords(
@@ -74,8 +100,7 @@ static PyObject *py_approximate_relaxed(PyObject *self, PyObject *args, PyObject
 
   pyarray w1_array(PyArray_FROM_OTF(w1_obj, NPY_FLOAT32, NPY_ARRAY_IN_ARRAY)),
           w2_array(PyArray_FROM_OTF(w2_obj, NPY_FLOAT32, NPY_ARRAY_IN_ARRAY)),
-          dist_array(PyArray_FROM_OTF(dist_obj, NPY_FLOAT32, NPY_ARRAY_IN_ARRAY)),
-          cache_array;
+          dist_array(PyArray_FROM_OTF(dist_obj, NPY_FLOAT32, NPY_ARRAY_IN_ARRAY));
   if (!w1_array || !w2_array || !dist_array) {
     PyErr_SetString(PyExc_TypeError,
                     "\"w1\", \"w2\" and \"dist\" must be float32 numpy arrays");
@@ -109,35 +134,95 @@ static PyObject *py_approximate_relaxed(PyObject *self, PyObject *args, PyObject
       return NULL;
     }
   }
-  std::unique_ptr<int32_t[]> cache_ptr;
-  int32_t *cache;
-  if (cache_obj == Py_None) {
-    cache_ptr.reset(new int32_t[size]);
-    cache = cache_ptr.get();
-  } else {
-    cache_array.reset(PyArray_FROM_OTF(cache_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY));
-    if (!cache_array) {
-      PyErr_SetString(PyExc_TypeError, "\"cache\" must be an int32 numpy array");
-      return NULL;
-    }
-    auto ndims = PyArray_NDIM(cache_array.get());
-    if (ndims != 1) {
-      PyErr_SetString(PyExc_ValueError, "\"cache\" must be a 1D int32 numpy array");
-      return NULL;
-    }
-    auto dims = PyArray_DIMS(cache_array.get());
-    if (dims[0] < size) {
-      PyErr_SetString(PyExc_ValueError, "\"cache\" size is too small");
-      return NULL;
-    }
-    cache = reinterpret_cast<int32_t *>(PyArray_DATA(cache_array.get()));
-  }
   auto w1 = reinterpret_cast<float *>(PyArray_DATA(w1_array.get()));
   auto w2 = reinterpret_cast<float *>(PyArray_DATA(w2_array.get()));
   auto dist = reinterpret_cast<float *>(PyArray_DATA(dist_array.get()));
-  float result;
-  Py_BEGIN_ALLOW_THREADS
-  result = emd_relaxed(w1, w2, dist, size, cache);
-  Py_END_ALLOW_THREADS
+  float result = payload(w1, w2, dist, size, cache_obj);
+  if (result < 0) {
+    return NULL;
+  }
   return Py_BuildValue("f", result);
+}
+
+static PyObject *py_emd_relaxed(PyObject *self, PyObject *args, PyObject *kwargs) {
+  auto payload = [](const float *w1, const float *w2, const float *dist,
+                    int size, PyObject *cache_obj) -> float {
+    pyarray cache_array;
+    std::unique_ptr<int32_t[]> cache_ptr;
+    int32_t *cache;
+    if (cache_obj == Py_None) {
+      cache_ptr.reset(new int32_t[size]);
+      cache = cache_ptr.get();
+    } else {
+      cache_array.reset(PyArray_FROM_OTF(cache_obj,
+                                         NPY_INT32,
+                                         NPY_ARRAY_IN_ARRAY));
+      if (!cache_array) {
+        PyErr_SetString(PyExc_TypeError,
+                        "\"cache\" must be an int32 numpy array");
+        return -1;
+      }
+      auto ndims = PyArray_NDIM(cache_array.get());
+      if (ndims != 1) {
+        PyErr_SetString(PyExc_ValueError,
+                        "\"cache\" must be a 1D int32 numpy array");
+        return -1;
+      }
+      auto dims = PyArray_DIMS(cache_array.get());
+      if (dims[0] < size) {
+        PyErr_SetString(PyExc_ValueError, "\"cache\" size is too small");
+        return -1;
+      }
+      cache = reinterpret_cast<int32_t *>(PyArray_DATA(cache_array.get()));
+    }
+
+    float result;
+    Py_BEGIN_ALLOW_THREADS
+    result = emd_relaxed(w1, w2, dist, size, cache);
+    Py_END_ALLOW_THREADS
+    return result;
+  };
+  return call_entry(self, args, kwargs, payload);
+}
+
+static PyObject *py_emd(PyObject *self, PyObject *args, PyObject *kwargs) {
+  auto payload = [](const float *w1, const float *w2, const float *dist,
+                    int size, PyObject *cache_obj) -> float {
+    EMDCache *cache = nullptr;
+    std::unique_ptr<EMDCache> cache_ptr;
+    if (cache_obj != Py_None) {
+      cache = reinterpret_cast<EMDCache *>(reinterpret_cast<intptr_t>(
+          PyLong_AsLong(cache_obj)));
+      if (PyErr_Occurred()) {
+        return -1;
+      }
+    }
+    if (cache == nullptr) {
+      cache_ptr.reset(new EMDCache());
+      cache_ptr->allocate(size);
+      cache = cache_ptr.get();
+    }
+    float result;
+    Py_BEGIN_ALLOW_THREADS
+    result = emd(w1, w2, dist, size, *cache);
+    Py_END_ALLOW_THREADS
+    return result;
+  };
+  return call_entry(self, args, kwargs, payload);
+}
+
+static PyObject *py_emd_relaxed_cache_init(PyObject *self, PyObject *args, PyObject *kwargs) {
+  return NULL;
+}
+
+static PyObject *py_emd_relaxed_cache_fini(PyObject *self, PyObject *args, PyObject *kwargs) {
+  return NULL;
+}
+
+static PyObject *py_emd_cache_init(PyObject *self, PyObject *args, PyObject *kwargs) {
+  return NULL;
+}
+
+static PyObject *py_emd_cache_fini(PyObject *self, PyObject *args, PyObject *kwargs) {
+  return NULL;
 }
