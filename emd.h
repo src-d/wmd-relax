@@ -60,8 +60,12 @@ class EMDCache {
     return kAllocationErrorSuccess;
   }
 
-  void deallocate() noexcept {
+  void reset() noexcept {
     size_ = 0;
+    side_.reset();
+    demand_.reset();
+    cost_.reset();
+    min_cost_flow_.Reset();
   }
 
  private:
