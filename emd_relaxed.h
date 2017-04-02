@@ -5,7 +5,7 @@
 
 /// @author Wojciech Jabłoński <wj359634@students.mimuw.edu.pl>
 template <typename T>
-T emd_approx_relaxed(
+T emd_relaxed(
     const T *__restrict__ w1,
     const T *__restrict__ w2,
     const T *__restrict__ dist,

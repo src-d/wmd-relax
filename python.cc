@@ -5,7 +5,8 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/arrayobject.h>
 #include <cuda_runtime_api.h>
-#include "emd_approx_relaxed.h"
+#include "emd.h"
+#include "emd_relaxed.h"
 
 static char module_docstring[] =
     "This module provides functions which accelerate Word Mover's Distance calculation.";
@@ -136,7 +137,7 @@ static PyObject *py_approximate_relaxed(PyObject *self, PyObject *args, PyObject
   auto dist = reinterpret_cast<float *>(PyArray_DATA(dist_array.get()));
   float result;
   Py_BEGIN_ALLOW_THREADS
-  result = emd_approx_relaxed(w1, w2, dist, size, cache);
+  result = emd_relaxed(w1, w2, dist, size, cache);
   Py_END_ALLOW_THREADS
   return Py_BuildValue("f", result);
 }

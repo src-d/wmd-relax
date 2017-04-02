@@ -1,9 +1,8 @@
 #include <cstdint>
 #include <cmath>
 #include <algorithm>
+
 #include "graph/min_cost_flow.h"
-
-
 
 
 /// @author Wojciech Jabłoński <wj359634@students.mimuw.edu.pl>
@@ -11,92 +10,97 @@
 namespace {
 
 
-using LL = int64_t;
-const LL MASS_MULT  = 1000*1000*1000;   // weights quantization constant
-const LL COST_MULT  = 1000*1000;        // costs quantization constant
+const int64_t MASS_MULT = 1000 * 1000 * 1000;   // weights quantization constant
+const int64_t COST_MULT = 1000 * 1000;          // costs quantization constant
 
 
-struct buffer_t {
-  bool* side;
-  LL*   demand;
-  LL*   cost;
+class Buffer {
+ public:
+  enum AllocationError {
+    kAllocationErrorSuccess = 0,
+    /// Can't allocate empty buffer.
+    kAllocationErrorInvalidSize,
+    /// You have to deallocate the buffer first before allocating again.
+    kAllocationErrorDeallocationNeeded
+  };
 
-  buffer_t()
-  : side(nullptr)
-  , demand(nullptr)
-  , cost(nullptr)
-  , size(0)
-  {}
+  Buffer() : size_(0) {}
 
-  size_t get_size() const {
-    return size;
+  bool* side() const noexcept {
+    return side_.get();
   }
 
-  void allocate(size_t s) {
-    if (s == 0) {
-      throw "Can't allocate empty buffer!";
-    }
-    if (size != 0) {
-      throw "You have to deallocate the buffer first before allocating again!";
-    }
-    size = s;
-    side    = new bool[size];
-    demand  = new LL[size];
-    cost    = new LL[size * size];
+  int64_t* demand() const noexcept {
+    return demand_.get();
   }
 
-  void deallocate() {
+  int64_t* cost() const noexcept {
+    return cost_.get();
+  }
+
+  size_t get_size() const noexcept {
+    return size_;
+  }
+
+  AllocationError allocate(size_t size) {
     if (size == 0) {
-      throw "DO NOT free already empty buffer!";
+      return kAllocationErrorInvalidSize;
     }
-    size = 0;
+    if (size_ != 0) {
+      return kAllocationErrorDeallocationNeeded;
+    }
+    size_ = size;
+    side_.reset(new bool[size]);
+    demand_.reset(new int64_t[size]);
+    cost_.reset(new int64_t[size * size]);
   }
 
-  private:
-  size_t size;
+  void deallocate() noexcept {
+    size_ = 0;
+  }
 
-  buffer_t(const buffer_t&) = delete;
-  buffer_t(const buffer_t&&) = delete;
-  buffer_t& operator=(const buffer_t&) = delete;
-  buffer_t& operator=(const buffer_t&&) = delete;
+ private:
+  mutable std::unique_ptr<bool[]> side_;
+  mutable std::unique_ptr<int64_t[]> demand_;
+  mutable std::unique_ptr<int64_t[]> cost_;
+  size_t size_;
+
+  Buffer(const Buffer&) = delete;
+  Buffer& operator=(const Buffer&) = delete;
 };
 
 
 template <typename T>
-void convert_weights(
-  const T* in,
-  const bool sid,
-  LL* out,
-  size_t size
-) {
-  LL sum = 0;
+void convert_weights(const T*__restrict__ in, bool sid,
+                     int64_t*__restrict__ out, size_t size) {
+  assert(in && out);
+  assert(size > 0);
+  int64_t sum = 0;
   double old_s = 0, new_s = 0;
+  double mult = (sid ? -1 : 1);
+  #pragma omp simd
   for (size_t i = 0; i < size; i++) {
     old_s = new_s;
     new_s = old_s + in[i];
-    LL w = round(new_s * MASS_MULT) - round(old_s * MASS_MULT);
+    int64_t w = round(new_s * MASS_MULT) - round(old_s * MASS_MULT);
     sum += w;
-    out[i] += w * (sid ? -1 : 1);
+    out[i] += w * mult;
   }
-  if (sum != MASS_MULT) {
-    throw "masses on one side not sufficiently normalized!";
-  }
+  assert(sum == MASS_MULT && "Masses on one side not sufficiently normalized.");
 }
 
 
 template <typename T>
-void convert_costs(
-  const T* in,
-  const bool* side,
-  LL* out,
-  const size_t size
-) {
+void convert_costs(const T*__restrict__ in, const bool*__restrict__ side,
+                   int64_t*__restrict__ out, size_t size) {
+  #pragma omp simd
   for (size_t i = 0; i < size; i++) {
     for (size_t j = 0; j < size; j++) {
-      out[i*size + j] = round(in[i*size + j]*COST_MULT);
+      out[i * size + j] = round(in[i * size + j] * COST_MULT);
     }
   }
 
+  #pragma omp simd
   for (size_t i = 0; i < size; i++) {
     for (size_t j = 0; j < size; j++) {
       if (side[i] && !side[j])
@@ -105,57 +109,42 @@ void convert_costs(
   }
 }
 
-
 }   // namespace
 
 
-
 template <typename T>
-T emd(
-  const T* w1,
-  const T* w2,
-  const T* dist,
-  const buffer_t& buffer,
-  uint32_t size
-) {
-  if (buffer.get_size() < size)
-    throw "Buffer not big enough!";
-  bool* side    = buffer.side;
-  LL*   demand  = buffer.demand;
-  LL*   cost    = buffer.cost;
+T emd(const T*__restrict__ w1, const T*__restrict__ w2,
+      const T*__restrict__ dist, const Buffer& buffer, uint32_t size) {
+  assert(w1 && w2 && dist);
+  assert(size > 0);
+  assert(buffer.get_size() >= size && "Buffer not big enough.");
+  bool* side = buffer.side();
+  int64_t* demand = buffer.demand();
+  int64_t* cost = buffer.cost();
 
-  for (size_t i = 0; i < size; i++) {
-    demand[i] = 0;
-  }
-
-  convert_weights<T>(w1, 0, demand, size);
-  convert_weights<T>(w2, 1, demand, size);
-
+  memset(demand, 0, size * sizeof(demand[0]));
+  convert_weights(w1, 0, demand, size);
+  convert_weights(w2, 1, demand, size);
+  #pragma omp simd
   for (size_t i = 0; i < size; i++) {
     side[i] = (demand[i] < 0);
   }
-
-  convert_costs<T>(dist, side, cost, size);
+  convert_costs(dist, side, cost, size);
 
   operations_research::SimpleMinCostFlow min_cost_flow;
   for (size_t i = 0; i < size; i++) {
     for (size_t j = 0; j < size; j++) {
       if (!side[i] && side[j]) {
         min_cost_flow.AddArcWithCapacityAndUnitCost(
-          i,
-          j,
-          std::min(demand[i], -demand[j]),
-          cost[i*size + j]);
+          i, j, std::min(demand[i], -demand[j]), cost[i * size + j]);
       }
     }
   }
-
   for (size_t i = 0; i < size; i++) {
     min_cost_flow.SetNodeSupply(i, demand[i]);
   }
-
   min_cost_flow.Solve();
-  double result = min_cost_flow.OptimalCost();
+  auto result = min_cost_flow.OptimalCost();
 
-  return T((result/MASS_MULT)/COST_MULT);
+  return T((result / MASS_MULT) / COST_MULT);
 }
