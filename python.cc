@@ -222,7 +222,7 @@ static PyObject *py_emd_relaxed_cache_init(PyObject *self, PyObject *args, PyObj
 }
 
 static PyObject *py_emd_relaxed_cache_fini(PyObject *self, PyObject *args, PyObject *kwargs) {
-  return NULL;
+  return Py_None;
 }
 
 static PyObject *py_emd_cache_init(PyObject *self, PyObject *args, PyObject *kwargs) {
@@ -241,5 +241,5 @@ static PyObject *py_emd_cache_fini(PyObject *self, PyObject *args, PyObject *kwa
     return NULL;
   }
   delete reinterpret_cast<EMDCache*>(cache);
-  return NULL;
+  return Py_None;
 }

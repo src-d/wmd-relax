@@ -146,7 +146,7 @@ T emd(const T*__restrict__ w1, const T*__restrict__ w2,
     for (size_t j = 0; j < size; j++) {
       if (!side[i] && side[j]) {
         min_cost_flow.AddArcWithCapacityAndUnitCost(
-          i, j, std::min(demand[i], -demand[j]), cost[i * size + j]);
+            i, j, std::min(demand[i], -demand[j]), cost[i * size + j]);
       }
     }
   }
