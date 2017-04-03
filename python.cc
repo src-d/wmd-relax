@@ -212,7 +212,13 @@ static PyObject *py_emd(PyObject *self, PyObject *args, PyObject *kwargs) {
 }
 
 static PyObject *py_emd_relaxed_cache_init(PyObject *self, PyObject *args, PyObject *kwargs) {
-  return NULL;
+  uint32_t size = 0;
+  if (!PyArg_ParseTuple(args, "I", &size)) {
+    return NULL;
+  }
+  npy_intp dims[] = {size, 0};
+  pyarray cache(PyArray_EMPTY(1, dims, NPY_INT32, false));
+  return Py_BuildValue("O", reinterpret_cast<PyObject*>(cache.get()));
 }
 
 static PyObject *py_emd_relaxed_cache_fini(PyObject *self, PyObject *args, PyObject *kwargs) {
@@ -220,9 +226,20 @@ static PyObject *py_emd_relaxed_cache_fini(PyObject *self, PyObject *args, PyObj
 }
 
 static PyObject *py_emd_cache_init(PyObject *self, PyObject *args, PyObject *kwargs) {
-  return NULL;
+  uint32_t size = 0;
+  if (!PyArg_ParseTuple(args, "I", &size)) {
+    return NULL;
+  }
+  auto cache = new EMDCache();
+  cache->allocate(size);
+  return Py_BuildValue("l", cache);
 }
 
 static PyObject *py_emd_cache_fini(PyObject *self, PyObject *args, PyObject *kwargs) {
+  intptr_t cache = 0;
+  if (!PyArg_ParseTuple(args, "l", &cache)) {
+    return NULL;
+  }
+  delete reinterpret_cast<EMDCache*>(cache);
   return NULL;
 }
