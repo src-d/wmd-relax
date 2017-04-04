@@ -153,8 +153,8 @@ T emd(const T*__restrict__ w1, const T*__restrict__ w2,
   for (size_t i = 0; i < size; i++) {
     min_cost_flow.SetNodeSupply(i, demand[i]);
   }
-  min_cost_flow.Solve();
-  auto result = min_cost_flow.OptimalCost();
+  assert(min_cost_flow.Solve() == operations_research::SimpleMinCostFlow::OPTIMAL);
+  double result = min_cost_flow.OptimalCost();
   min_cost_flow.Reset();
 
   return T((result / MASS_MULT) / COST_MULT);
