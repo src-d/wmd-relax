@@ -69,6 +69,7 @@ class WMD(object):
                  verbosity=logging.INFO):
         self._relax_cache = None
         self._exact_cache = None
+        self._centroid_cache = None
         self.embeddings = embeddings
         self.nbow = nbow
         self.vocabulary_min = vocabulary_min
@@ -92,6 +93,7 @@ class WMD(object):
         if not hasattr(value, "__getitem__"):
             raise TypeError("embeddings must support [] indexing")
         self._embeddings = value
+        self._reset_caches()
 
     @property
     def nbow(self):
@@ -102,6 +104,7 @@ class WMD(object):
         if not hasattr(value, "__iter__") or not hasattr(value, "__getitem__"):
             raise TypeError("nbow must be iterable and support [] indexing")
         self._nbow = value
+        self._reset_caches()
 
     @property
     def vocabulary_min(self):
@@ -113,6 +116,7 @@ class WMD(object):
         if value <= 0:
             raise ValueError("vocabulary_min must be > 0 (got %d)" % value)
         self._vocabulary_min = value
+        self._reset_caches()
 
     @property
     def vocabulary_max(self):
@@ -130,6 +134,7 @@ class WMD(object):
         if self._exact_cache is not None:
             libwmdrelax.emd_cache_fini(self._exact_cache)
         self._exact_cache = libwmdrelax.emd_cache_init(value * 2)
+        self._reset_caches()
 
     @property
     def vocabulary_optimizer(self):
@@ -140,6 +145,10 @@ class WMD(object):
         if not callable(value) and value is not None:
             raise ValueError("vocabulary_optimizer must be a callable")
         self._vocabulary_optimizer = value
+        self._reset_caches()
+
+    def _reset_caches(self):
+        self._centroid_cache = None
 
     def _get_vocabulary(self, index):
         _, words, weights = self.nbow[index]
@@ -163,6 +172,9 @@ class WMD(object):
         return joint, nw1, nw2
 
     def _centroid_word(self, index):
+        #c = self._centroid_cache.get(index, "miss")  # None is a normal value
+        #if c != "miss":
+        #    return c
         words, weights = self._get_vocabulary(index)
         n = weights.sum()
         if n <= 0 or len(words) < self.vocabulary_min:
@@ -199,6 +211,20 @@ class WMD(object):
         dists = numpy.sqrt(dists)
         return libwmdrelax.emd(w1, w2, dists, self._exact_cache)
 
+    def cache_centroids(self):
+        keys = []
+        _, words, _ = self.nbow[next(iter(self.nbow))]
+        centroids = numpy.zeros(
+            (sum(1 for _ in self.nbow), self.embeddings[words[0]].shape[0]),
+            dtype=numpy.float32)
+        for i, key in enumerate(self.nbow):
+            keys.append(key)
+            centroid = self._centroid_word(key)
+            if centroid is not None:
+                centroids[i] = centroid
+        keys = numpy.array(keys)
+        self._centroid_cache = (keys, centroids)
+
     def nearest_neighbors(self, origin, k=10, early_stop=0.5, max_time=3600):
         if isinstance(origin, (tuple, list)):
             words, weights = origin
@@ -214,14 +240,19 @@ class WMD(object):
                 "Too little vocabulary for %d: %d" % (index, len(words)))
         self._log.info("WCD")
         ts = time()
-        queue = []
-        for i2 in self.nbow:
-            if i2 == index:
-                continue
-            d = self._estimate_WMD_centroid_batch(avg, i2)
-            if d is not None:
-                queue.append((d, i2))
-        queue.sort()
+        if self._centroid_cache is None:
+            queue = []
+            for i2 in self.nbow:
+                if i2 == index:
+                    continue
+                d = self._estimate_WMD_centroid_batch(avg, i2)
+                if d is not None:
+                    queue.append((d, i2))
+            queue.sort()
+        else:
+            keys, centroids = self._centroid_cache
+            dists = numpy.linalg.norm(centroids - avg, axis=-1)
+            queue = [(None, k) for k in keys[numpy.argsort(dists)]]
         self._log.info("%.1f", time() - ts)
         self._log.info("First K WMD")
         ts = time()
