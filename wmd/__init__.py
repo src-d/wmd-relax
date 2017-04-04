@@ -199,8 +199,13 @@ class WMD(object):
         dists = numpy.sqrt(dists)
         return libwmdrelax.emd(w1, w2, dists, self._exact_cache)
 
-    def nearest_neighbors(self, index, k=10, early_stop=0.5, max_time=3600):
-        words, weights = self._get_vocabulary(index)
+    def nearest_neighbors(self, origin, k=10, early_stop=0.5, max_time=3600):
+        if isinstance(origin, (tuple, list)):
+            words, weights = origin
+            index = None
+        else:
+            index = origin
+            words, weights = self._get_vocabulary(index)
         self._log.info("Vocabulary size: %d %d",
                        len(words), self.vocabulary_max)
         avg = self._centroid_word(index)
