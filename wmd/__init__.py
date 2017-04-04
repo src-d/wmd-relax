@@ -171,19 +171,19 @@ class WMD(object):
         nw2[numpy.searchsorted(joint, words2)] = weights2
         return joint, nw1, nw2
 
-    def _centroid_word(self, index):
-        #c = self._centroid_cache.get(index, "miss")  # None is a normal value
-        #if c != "miss":
-        #    return c
-        words, weights = self._get_vocabulary(index)
+    def _get_centroid(self, words, weights):
         n = weights.sum()
         if n <= 0 or len(words) < self.vocabulary_min:
             return None
         wsum = (self.embeddings[words] * weights[:, numpy.newaxis]).sum(axis=0)
         return wsum / n
 
+    def _get_centroid_by_index(self, index):
+        words, weights = self._get_vocabulary(index)
+        return self._get_centroid(words, weights)
+
     def _estimate_WMD_centroid_batch(self, avg1, i2):
-        avg2 = self._centroid_word(i2)
+        avg2 = self._get_centroid_by_index(i2)
         if avg2 is None:
             return avg2
         return numpy.linalg.norm(avg1 - avg2)
@@ -218,10 +218,12 @@ class WMD(object):
             (sum(1 for _ in self.nbow), self.embeddings[words[0]].shape[0]),
             dtype=numpy.float32)
         for i, key in enumerate(self.nbow):
-            keys.append(key)
-            centroid = self._centroid_word(key)
+            centroid = self._get_centroid_by_index(key)
             if centroid is not None:
                 centroids[i] = centroid
+            else:
+                key = None
+            keys.append(key)
         keys = numpy.array(keys)
         self._centroid_cache = (keys, centroids)
 
@@ -229,15 +231,16 @@ class WMD(object):
         if isinstance(origin, (tuple, list)):
             words, weights = origin
             index = None
+            avg = self._get_centroid(words, weights)
         else:
             index = origin
             words, weights = self._get_vocabulary(index)
-        self._log.info("Vocabulary size: %d %d",
-                       len(words), self.vocabulary_max)
-        avg = self._centroid_word(index)
+            avg = self._get_centroid_by_index(index)
         if avg is None:
             raise ValueError(
                 "Too little vocabulary for %d: %d" % (index, len(words)))
+        self._log.info("Vocabulary size: %d %d",
+                       len(words), self.vocabulary_max)
         self._log.info("WCD")
         ts = time()
         if self._centroid_cache is None:
@@ -252,7 +255,8 @@ class WMD(object):
         else:
             keys, centroids = self._centroid_cache
             dists = numpy.linalg.norm(centroids - avg, axis=-1)
-            queue = [(None, k) for k in keys[numpy.argsort(dists)]]
+            queue = [(None, k) for k in keys[numpy.argsort(dists)]
+                     if k is not None]
         self._log.info("%.1f", time() - ts)
         self._log.info("First K WMD")
         ts = time()
@@ -276,10 +280,14 @@ class WMD(object):
             estimated_d, w1, w2, dists = self._estimate_WMD_relaxation_batch(
                 words, weights, i2)
             farthest = -neighbors[0][0]
+            if farthest == 0:
+                break
             if estimated_d >= farthest:
                 skipped += 1
                 continue
             d = libwmdrelax.emd(w1, w2, dists, self._exact_cache)
             if d < farthest:
                 heapq.heapreplace(neighbors, (-d, i2))
-        return neighbors
+        neighbors = [(-n[0], n[1]) for n in neighbors]
+        neighbors.sort()
+        return [(n[1], n[0]) for n in neighbors]
