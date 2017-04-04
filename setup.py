@@ -7,6 +7,10 @@ from shutil import copyfile
 from subprocess import check_call
 from sys import platform
 
+
+PACKAGE = "wmd"
+
+
 class SetupConfigurationError(Exception):
     pass
 
@@ -42,8 +46,9 @@ class CMakeBuild(build_py):
                         "-DCUDA_HOST_COMPILER=%s" % ccbin, "-DSUFFIX=.so", "."),
                        env=env)
         check_call(("make", "-j%d" % cpu_count()))
-        self.mkpath(self.build_lib)
-        dest = os.path.join(self.build_lib, self.SHLIB)
+        dest_dir = os.path.join(self.build_lib, PACKAGE)
+        self.mkpath(dest_dir)
+        dest = os.path.join(dest_dir, self.SHLIB)
         copyfile(self.SHLIB, dest)
         self._shared_lib = [dest]
 
@@ -57,7 +62,7 @@ class BinaryDistribution(Distribution):
         return False
 
 setup(
-    name="libwmdrelax",
+    name=PACKAGE,
     description="Accelerated functions to calculate Word Mover's Distance",
     version="1.0.0",
     license="MIT",
@@ -65,10 +70,10 @@ setup(
     author_email="vadim@sourced.tech",
     url="https://github.com/src-d/wmd-relax",
     download_url="https://github.com/src-d/wmd-relax",
-    py_modules=["libwmdrelax"],
+    packages=[PACKAGE],
     install_requires=["numpy"],
     distclass=BinaryDistribution,
-    cmdclass={'build_py': CMakeBuild},
+    cmdclass={"build_py": CMakeBuild},
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",

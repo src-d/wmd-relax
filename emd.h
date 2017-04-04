@@ -81,13 +81,13 @@ class EMDCache {
 
 
 template <typename T>
-void convert_weights(const T*__restrict__ in, bool sid,
+void convert_weights(const T*__restrict__ in, bool sign,
                      int64_t*__restrict__ out, size_t size) {
   assert(in && out);
   assert(size > 0);
   int64_t sum = 0;
   double old_s = 0, new_s = 0;
-  double mult = (sid ? -1 : 1);
+  double mult = (sign ? -1 : 1);
   #pragma omp simd
   for (size_t i = 0; i < size; i++) {
     old_s = new_s;
@@ -96,7 +96,19 @@ void convert_weights(const T*__restrict__ in, bool sid,
     sum += w;
     out[i] += w * mult;
   }
-  assert(sum == MASS_MULT && "Masses on one side not sufficiently normalized.");
+  if (sum != MASS_MULT) {
+    if (abs(sum - MASS_MULT + 0.) / MASS_MULT > 0.0000001) {
+#ifndef NDEBUG
+      assert(sum == MASS_MULT && "Masses on one side not sufficiently normalized.");
+#else
+      fprintf(stderr, "wmd: weights are not normalized: %li != %li\n",
+              sum, MASS_MULT);
+#endif
+    } else {
+      // compensate for the rounding error
+      out[0] += (sign ? 1 : -1) * (sum - MASS_MULT);
+    }
+  }
 }
 
 
@@ -128,14 +140,23 @@ T emd(const T*__restrict__ w1, const T*__restrict__ w2,
       const T*__restrict__ dist, uint32_t size, const EMDCache& cache) {
   assert(w1 && w2 && dist);
   assert(size > 0);
+#ifndef NDEBUG
   assert(cache.get_size() >= size && "EMDCache not big enough.");
+#else
+  if (cache.get_size() < size) {
+    fprintf(stderr, "emd: cache size is too small: %zu < %u\n",
+            cache.get_size(), size);
+    return -1;
+  }
+#endif
   bool* side = cache.side();
   int64_t* demand = cache.demand();
   int64_t* cost = cache.cost();
 
   memset(demand, 0, size * sizeof(demand[0]));
-  convert_weights(w1, 0, demand, size);
-  convert_weights(w2, 1, demand, size);
+  convert_weights(w1, false, demand, size);
+  convert_weights(w2, true,  demand, size);
+
   #pragma omp simd
   for (size_t i = 0; i < size; i++) {
     side[i] = (demand[i] < 0);
@@ -161,6 +182,7 @@ T emd(const T*__restrict__ w1, const T*__restrict__ w2,
   assert(status == operations_research::SimpleMinCostFlow::OPTIMAL);
 #else
   if (status != operations_research::SimpleMinCostFlow::OPTIMAL) {
+    fprintf(stderr, "wmd: status is %d\n", status);
     return -status;
   }
 #endif
