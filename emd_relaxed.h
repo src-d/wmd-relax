@@ -16,12 +16,12 @@ T emd_relaxed(const T *__restrict__ w1, const T *__restrict__ w2,
   for (size_t c = 0; c < 2; c++) {
     T acc = 0;
     for (size_t i = 0; i < size; i++) {
-      if (w1[i] != T(0)) {
+      if (w1[i] != 0) {
         std::sort(
           cache,
           cache + size,
           [&](const int a, const int b) {
-            return dist[i*size + a] < dist[i * size + b];
+            return dist[i * size + a] < dist[i * size + b];
           });
 
         T remaining = w1[i];

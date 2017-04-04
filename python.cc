@@ -139,6 +139,7 @@ static PyObject* call_entry(
   auto dist = reinterpret_cast<float *>(PyArray_DATA(dist_array.get()));
   float result = payload(w1, w2, dist, size, cache_obj);
   if (result < 0) {
+    PyErr_SetString(PyExc_RuntimeError, "negative cost was returned");
     return NULL;
   }
   return Py_BuildValue("f", result);

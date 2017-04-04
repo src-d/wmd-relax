@@ -113,8 +113,9 @@ void convert_costs(const T*__restrict__ in, const bool*__restrict__ side,
   #pragma omp simd
   for (size_t i = 0; i < size; i++) {
     for (size_t j = 0; j < size; j++) {
-      if (side[i] && !side[j])
+      if (side[i] && !side[j]) {
         out[i * size + j] = -out[j * size + i];
+      }
     }
   }
 }
@@ -153,9 +154,15 @@ T emd(const T*__restrict__ w1, const T*__restrict__ w2,
   for (size_t i = 0; i < size; i++) {
     min_cost_flow.SetNodeSupply(i, demand[i]);
   }
-  assert(min_cost_flow.Solve() == operations_research::SimpleMinCostFlow::OPTIMAL);
+  auto status = min_cost_flow.Solve();
   double result = min_cost_flow.OptimalCost();
   min_cost_flow.Reset();
-
+#ifndef NDEBUG
+  assert(status == operations_research::SimpleMinCostFlow::OPTIMAL);
+#else
+  if (status != operations_research::SimpleMinCostFlow::OPTIMAL) {
+    return -status;
+  }
+#endif
   return T((result / MASS_MULT) / COST_MULT);
 }
