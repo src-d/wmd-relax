@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import libwmdrelax
 del sys.path[0]
 
-__version__ = (1, 0, 0)
+__version__ = (1, 1, 1)
 
 
 class TailVocabularyOptimizer(object):
