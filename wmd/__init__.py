@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import libwmdrelax
 del sys.path[0]
 
-__version__ = (1, 1, 2)
+__version__ = (1, 1, 3)
 
 
 class TailVocabularyOptimizer(object):
@@ -66,7 +66,7 @@ class TailVocabularyOptimizer(object):
 class WMD(object):
     def __init__(self, embeddings, nbow, vocabulary_min=50, vocabulary_max=500,
                  vocabulary_optimizer=TailVocabularyOptimizer(),
-                 verbosity=logging.INFO):
+                 verbosity=logging.INFO, main_loop_log_interval=60):
         self._relax_cache = None
         self._exact_cache = None
         self._centroid_cache = None
@@ -77,6 +77,7 @@ class WMD(object):
         self.vocabulary_optimizer = vocabulary_optimizer
         self._log = logging.getLogger("WMD")
         self._log.level = logging.Logger("", verbosity).level
+        self.main_loop_log_interval = main_loop_log_interval
 
     def __del__(self):
         if self._relax_cache is not None:
@@ -146,6 +147,17 @@ class WMD(object):
             raise ValueError("vocabulary_optimizer must be a callable")
         self._vocabulary_optimizer = value
         self._reset_caches()
+
+    @property
+    def main_loop_log_interval(self):
+        return self._main_loop_log_interval
+
+    @main_loop_log_interval.setter
+    def main_loop_log_interval(self, value):
+        if not isinstance(value, (float, int)):
+            raise TypeError(
+                "main_loop_log_interval must be either float or int")
+        self._main_loop_log_interval = value
 
     def _reset_caches(self):
         self._centroid_cache = None
@@ -227,7 +239,8 @@ class WMD(object):
         keys = numpy.array(keys)
         self._centroid_cache = (keys, centroids)
 
-    def nearest_neighbors(self, origin, k=10, early_stop=0.5, max_time=3600):
+    def nearest_neighbors(self, origin, k=10, early_stop=0.5, max_time=3600,
+                          skipped_stop=0.999):
         if isinstance(origin, (tuple, list)):
             words, weights = origin
             index = None
@@ -263,24 +276,30 @@ class WMD(object):
         neighbors = [(-self._WMD_batch(words, weights, i2), i2)
                      for (_, i2) in queue[:k]]
         heapq.heapify(neighbors)
-        self._log.info("%s", neighbors)
+        self._log.info("%s", neighbors[:10])
         self._log.info("%.1f", time() - ts)
         self._log.info("P&P")
         skipped = estimated_d = 0
         ppts = time()
         for progress, (_, i2) in enumerate(queue[k:int(len(queue) * early_stop)]):
-            if progress % 10 == 0 and time() - ppts > 60:
+            if progress % 10 == 0 \
+                    and time() - ppts > self.main_loop_log_interval:
+                skipped_ratio = skipped / max(progress, 1)
                 self._log.info(
-                    "%s %s %s %s %s", progress, skipped / max(progress, 1),
-                    estimated_d, neighbors[:3],
-                    [self.nbow[n[1]][0] for n in neighbors[-3:]])
+                    "%s %s %s %s %s", progress, skipped_ratio, estimated_d,
+                    neighbors[:3], [self.nbow[n[1]][0] for n in neighbors[-3:]])
                 ppts = time()
                 if ppts - ts > max_time:
+                    self._log.info("stopped by max_time condition")
+                    break
+                if skipped_ratio >= skipped_stop:
+                    self._log.info("stopped by skipped_stop condition")
                     break
             estimated_d, w1, w2, dists = self._estimate_WMD_relaxation_batch(
                 words, weights, i2)
             farthest = -neighbors[0][0]
             if farthest == 0:
+                self._log.info("stopped by farthest == 0 condition")
                 break
             if estimated_d >= farthest:
                 skipped += 1
@@ -288,6 +307,8 @@ class WMD(object):
             d = libwmdrelax.emd(w1, w2, dists, self._exact_cache)
             if d < farthest:
                 heapq.heapreplace(neighbors, (-d, i2))
+        else:
+            self._log.info("stopped by early_stop condition")
         neighbors = [(-n[0], n[1]) for n in neighbors]
         neighbors.sort()
         return [(n[1], n[0]) for n in neighbors]
