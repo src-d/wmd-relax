@@ -64,7 +64,7 @@ class BinaryDistribution(Distribution):
 setup(
     name=PACKAGE,
     description="Accelerated functions to calculate Word Mover's Distance",
-    version="1.1.1",
+    version="1.1.2",
     license="MIT",
     author="source{d}",
     author_email="vadim@sourced.tech",

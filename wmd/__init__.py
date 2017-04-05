@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import libwmdrelax
 del sys.path[0]
 
-__version__ = (1, 1, 1)
+__version__ = (1, 1, 2)
 
 
 class TailVocabularyOptimizer(object):
@@ -262,8 +262,8 @@ class WMD(object):
         ts = time()
         neighbors = [(-self._WMD_batch(words, weights, i2), i2)
                      for (_, i2) in queue[:k]]
-        self._log.info("%s", neighbors)
         heapq.heapify(neighbors)
+        self._log.info("%s", neighbors)
         self._log.info("%.1f", time() - ts)
         self._log.info("P&P")
         skipped = estimated_d = 0
