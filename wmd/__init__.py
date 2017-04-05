@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import libwmdrelax
 del sys.path[0]
 
-__version__ = (1, 1, 3)
+__version__ = (1, 1, 4)
 
 
 class TailVocabularyOptimizer(object):
@@ -251,7 +251,7 @@ class WMD(object):
             avg = self._get_centroid_by_index(index)
         if avg is None:
             raise ValueError(
-                "Too little vocabulary for %d: %d" % (index, len(words)))
+                "Too little vocabulary for %s: %d" % (index, len(words)))
         self._log.info("Vocabulary size: %d %d",
                        len(words), self.vocabulary_max)
         self._log.info("WCD")
