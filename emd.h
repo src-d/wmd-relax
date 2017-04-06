@@ -2,6 +2,7 @@
 #include <cmath>
 #include <algorithm>
 
+#include "cache.h"
 #include "graph/min_cost_flow.h"
 
 
@@ -14,18 +15,8 @@ const int64_t MASS_MULT = 1000 * 1000 * 1000;   // weights quantization constant
 const int64_t COST_MULT = 1000 * 1000;          // costs quantization constant
 
 
-class EMDCache {
+class EMDCache : public wmd::Cache {
  public:
-  enum AllocationError {
-    kAllocationErrorSuccess = 0,
-    /// Can't allocate empty cache.
-    kAllocationErrorInvalidSize,
-    /// You have to deallocate the cache first before allocating again.
-    kAllocationErrorDeallocationNeeded
-  };
-
-  EMDCache() : size_(0) {}
-
   bool* side() const noexcept {
     return side_.get();
   }
@@ -46,22 +37,25 @@ class EMDCache {
     return min_cost_flow_;
   }
 
-  AllocationError allocate(size_t size) {
-    if (size == 0) {
-      return kAllocationErrorInvalidSize;
+ protected:
+  void _allocate() override {
+    side_.reset(new bool[size_]);
+    demand_.reset(new int64_t[size_]);
+    cost_.reset(new int64_t[size_ * size_]);
+
+    // warmup min_cost_flow_
+    for (size_t i = 0; i < size_; i++) {
+      for (size_t j = 0; j < size_; j++) {
+        min_cost_flow_.AddArcWithCapacityAndUnitCost(i, j, 1, 1);
+      }
     }
-    if (size_ != 0) {
-      return kAllocationErrorDeallocationNeeded;
+    for (size_t i = 0; i < size_; i++) {
+      min_cost_flow_.SetNodeSupply(i, 1);
     }
-    size_ = size;
-    side_.reset(new bool[size]);
-    demand_.reset(new int64_t[size]);
-    cost_.reset(new int64_t[size * size]);
-    return kAllocationErrorSuccess;
+    min_cost_flow_.Reset();
   }
 
-  void reset() noexcept {
-    size_ = 0;
+  void _reset() noexcept override {
     side_.reset();
     demand_.reset();
     cost_.reset();
@@ -72,11 +66,8 @@ class EMDCache {
   mutable std::unique_ptr<bool[]> side_;
   mutable std::unique_ptr<int64_t[]> demand_;
   mutable std::unique_ptr<int64_t[]> cost_;
-  size_t size_;
   mutable operations_research::SimpleMinCostFlow min_cost_flow_;
-
-  EMDCache(const EMDCache&) = delete;
-  EMDCache& operator=(const EMDCache&) = delete;
+  mutable std::mutex lock_;
 };
 
 
@@ -140,15 +131,7 @@ T emd(const T*__restrict__ w1, const T*__restrict__ w2,
       const T*__restrict__ dist, uint32_t size, const EMDCache& cache) {
   assert(w1 && w2 && dist);
   assert(size > 0);
-#ifndef NDEBUG
-  assert(cache.get_size() >= size && "EMDCache not big enough.");
-#else
-  if (cache.get_size() < size) {
-    fprintf(stderr, "emd: cache size is too small: %zu < %u\n",
-            cache.get_size(), size);
-    return -1;
-  }
-#endif
+  std::lock_guard<std::mutex> _(cache.enter(size));
   bool* side = cache.side();
   int64_t* demand = cache.demand();
   int64_t* cost = cache.cost();

@@ -39,14 +39,6 @@ class RelaxedTests(Base):
         self.assertAlmostEqual(r, 0.6125112)
 
     def test_with_cache(self):
-        cache = numpy.zeros(4, dtype=numpy.int32)
-        w1, w2, dist = self._get_w1_w2_dist()
-        r = libwmdrelax.emd_relaxed(w1, w2, dist, cache)
-        self.assertAlmostEqual(r, 0.6125112)
-        r = libwmdrelax.emd_relaxed(w1, w2, dist, cache=cache)
-        self.assertAlmostEqual(r, 0.6125112)
-
-    def test_with_cache_alloc(self):
         cache = libwmdrelax.emd_relaxed_cache_init(4)
         w1, w2, dist = self._get_w1_w2_dist()
         r = libwmdrelax.emd_relaxed(w1, w2, dist, cache)

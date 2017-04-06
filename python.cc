@@ -20,7 +20,6 @@ static char emd_docstring[] = "Calculates the exact WMD.";
 static char emd_cache_init_docstring[] = "Allocates the cache for emd().";
 static char emd_cache_fini_docstring[] = "Deallocates the cache for emd().";
 
-
 static PyObject *py_emd_relaxed(PyObject *self, PyObject *args, PyObject *kwargs);
 static PyObject *py_emd(PyObject *self, PyObject *args, PyObject *kwargs);
 static PyObject *py_emd_relaxed_cache_init(PyObject *self, PyObject *args, PyObject *kwargs);
@@ -67,6 +66,8 @@ PyMODINIT_FUNC PyInit_libwmdrelax(void) {
   return m;
 }
 }
+
+static std::mutex emd_lock;
 
 template <typename O>
 using pyobj_parent = std::unique_ptr<O, std::function<void(O*)>>;
@@ -148,38 +149,24 @@ static PyObject* call_entry(
 static PyObject *py_emd_relaxed(PyObject *self, PyObject *args, PyObject *kwargs) {
   auto payload = [](const float *w1, const float *w2, const float *dist,
                     int size, PyObject *cache_obj) -> float {
-    pyarray cache_array;
-    std::unique_ptr<int32_t[]> cache_ptr;
-    int32_t *cache;
-    if (cache_obj == Py_None) {
-      cache_ptr.reset(new int32_t[size]);
+    EMDRelaxedCache *cache = nullptr;
+    std::unique_ptr<EMDRelaxedCache> cache_ptr;
+    if (cache_obj != Py_None) {
+      cache = reinterpret_cast<EMDRelaxedCache *>(reinterpret_cast<intptr_t>(
+          PyLong_AsLong(cache_obj)));
+      if (PyErr_Occurred()) {
+        return -1;
+      }
+    }
+    if (cache == nullptr) {
+      cache_ptr.reset(new EMDRelaxedCache());
+      cache_ptr->allocate(size);
       cache = cache_ptr.get();
-    } else {
-      cache_array.reset(PyArray_FROM_OTF(cache_obj,
-                                         NPY_INT32,
-                                         NPY_ARRAY_IN_ARRAY));
-      if (!cache_array) {
-        PyErr_SetString(PyExc_TypeError,
-                        "\"cache\" must be an int32 numpy array");
-        return -1;
-      }
-      auto ndims = PyArray_NDIM(cache_array.get());
-      if (ndims != 1) {
-        PyErr_SetString(PyExc_ValueError,
-                        "\"cache\" must be a 1D int32 numpy array");
-        return -1;
-      }
-      auto dims = PyArray_DIMS(cache_array.get());
-      if (dims[0] < size) {
-        PyErr_SetString(PyExc_ValueError, "\"cache\" size is too small");
-        return -1;
-      }
-      cache = reinterpret_cast<int32_t *>(PyArray_DATA(cache_array.get()));
     }
 
     float result;
     Py_BEGIN_ALLOW_THREADS
-    result = emd_relaxed(w1, w2, dist, size, cache);
+    result = emd_relaxed(w1, w2, dist, size, *cache);
     Py_END_ALLOW_THREADS
     return result;
   };
@@ -217,12 +204,17 @@ static PyObject *py_emd_relaxed_cache_init(PyObject *self, PyObject *args, PyObj
   if (!PyArg_ParseTuple(args, "I", &size)) {
     return NULL;
   }
-  npy_intp dims[] = {size, 0};
-  pyarray cache(PyArray_EMPTY(1, dims, NPY_INT32, false));
-  return Py_BuildValue("O", reinterpret_cast<PyObject*>(cache.get()));
+  auto cache = new EMDRelaxedCache();
+  cache->allocate(size);
+  return Py_BuildValue("l", cache);
 }
 
 static PyObject *py_emd_relaxed_cache_fini(PyObject *self, PyObject *args, PyObject *kwargs) {
+  intptr_t cache = 0;
+  if (!PyArg_ParseTuple(args, "l", &cache)) {
+    return NULL;
+  }
+  delete reinterpret_cast<EMDRelaxedCache*>(cache);
   return Py_None;
 }
 
