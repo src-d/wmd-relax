@@ -87,10 +87,11 @@ class _pyobj : public pyobj_parent<O> {
 using pyobj = _pyobj<PyObject>;
 using pyarray = _pyobj<PyArrayObject>;
 
-static PyObject* call_entry(
+template <class C>
+PyObject* emd_entry(
     PyObject *self, PyObject *args, PyObject *kwargs,
-    std::function<float(const float*, const float*, const float*, int,
-                        PyObject*)> payload) {
+    float (*payload)(const float*, const float*, const float*, uint32_t,
+                     const C&)) {
   PyObject *w1_obj, *w2_obj, *dist_obj, *cache_obj = Py_None;
   static const char *kwlist[] = {"w1", "w2", "dist", "cache", NULL};
   if (!PyArg_ParseTupleAndKeywords(
@@ -138,7 +139,33 @@ static PyObject* call_entry(
   auto w1 = reinterpret_cast<float *>(PyArray_DATA(w1_array.get()));
   auto w2 = reinterpret_cast<float *>(PyArray_DATA(w2_array.get()));
   auto dist = reinterpret_cast<float *>(PyArray_DATA(dist_array.get()));
-  float result = payload(w1, w2, dist, size, cache_obj);
+
+  C *cache = nullptr;
+  std::unique_ptr<C> cache_ptr;
+  if (cache_obj != Py_None) {
+    cache = reinterpret_cast<C *>(reinterpret_cast<intptr_t>(
+        PyLong_AsLong(cache_obj)));
+    if (PyErr_Occurred()) {
+      return NULL;
+    }
+  }
+  if (cache == nullptr) {
+    cache_ptr.reset(new C());
+    auto alloc_result = cache_ptr->allocate(size);
+#ifndef NDEBUG
+    assert(alloc_result == wmd::Cache::kAllocationErrorSuccess);
+#else
+    if (alloc_result != wmd::Cache::kAllocationErrorSuccess) {
+      PyErr_SetString(PyExc_MemoryError, "failed to allocate the cache");
+      return NULL;
+    }
+#endif
+    cache = cache_ptr.get();
+  }
+  float result;
+  Py_BEGIN_ALLOW_THREADS
+  result = payload(w1, w2, dist, size, *cache);
+  Py_END_ALLOW_THREADS
   if (result < 0) {
     PyErr_SetString(PyExc_RuntimeError, "negative cost was returned");
     return NULL;
@@ -146,93 +173,47 @@ static PyObject* call_entry(
   return Py_BuildValue("f", result);
 }
 
-static PyObject *py_emd_relaxed(PyObject *self, PyObject *args, PyObject *kwargs) {
-  auto payload = [](const float *w1, const float *w2, const float *dist,
-                    int size, PyObject *cache_obj) -> float {
-    EMDRelaxedCache *cache = nullptr;
-    std::unique_ptr<EMDRelaxedCache> cache_ptr;
-    if (cache_obj != Py_None) {
-      cache = reinterpret_cast<EMDRelaxedCache *>(reinterpret_cast<intptr_t>(
-          PyLong_AsLong(cache_obj)));
-      if (PyErr_Occurred()) {
-        return -1;
-      }
-    }
-    if (cache == nullptr) {
-      cache_ptr.reset(new EMDRelaxedCache());
-      cache_ptr->allocate(size);
-      cache = cache_ptr.get();
-    }
+template <class C>
+PyObject *cache_init(PyObject *args) {
+  uint32_t size = 0;
+  if (!PyArg_ParseTuple(args, "I", &size)) {
+    return NULL;
+  }
+  auto cache = new C();
+  cache->allocate(size);
+  return Py_BuildValue("l", cache);
+}
 
-    float result;
-    Py_BEGIN_ALLOW_THREADS
-    result = emd_relaxed(w1, w2, dist, size, *cache);
-    Py_END_ALLOW_THREADS
-    return result;
-  };
-  return call_entry(self, args, kwargs, payload);
+template <class C>
+PyObject *cache_fini(PyObject *args) {
+  intptr_t cache = 0;
+  if (!PyArg_ParseTuple(args, "l", &cache)) {
+    return NULL;
+  }
+  delete reinterpret_cast<C*>(cache);
+  return Py_None;
+}
+
+static PyObject *py_emd_relaxed(PyObject *self, PyObject *args, PyObject *kwargs) {
+  return emd_entry(self, args, kwargs, emd_relaxed<float>);
 }
 
 static PyObject *py_emd(PyObject *self, PyObject *args, PyObject *kwargs) {
-  auto payload = [](const float *w1, const float *w2, const float *dist,
-                    int size, PyObject *cache_obj) -> float {
-    EMDCache *cache = nullptr;
-    std::unique_ptr<EMDCache> cache_ptr;
-    if (cache_obj != Py_None) {
-      cache = reinterpret_cast<EMDCache *>(reinterpret_cast<intptr_t>(
-          PyLong_AsLong(cache_obj)));
-      if (PyErr_Occurred()) {
-        return -1;
-      }
-    }
-    if (cache == nullptr) {
-      cache_ptr.reset(new EMDCache());
-      cache_ptr->allocate(size);
-      cache = cache_ptr.get();
-    }
-    float result;
-    Py_BEGIN_ALLOW_THREADS
-    result = emd(w1, w2, dist, size, *cache);
-    Py_END_ALLOW_THREADS
-    return result;
-  };
-  return call_entry(self, args, kwargs, payload);
+  return emd_entry(self, args, kwargs, emd<float>);
 }
 
 static PyObject *py_emd_relaxed_cache_init(PyObject *self, PyObject *args, PyObject *kwargs) {
-  uint32_t size = 0;
-  if (!PyArg_ParseTuple(args, "I", &size)) {
-    return NULL;
-  }
-  auto cache = new EMDRelaxedCache();
-  cache->allocate(size);
-  return Py_BuildValue("l", cache);
+  return cache_init<EMDRelaxedCache>(args);
 }
 
 static PyObject *py_emd_relaxed_cache_fini(PyObject *self, PyObject *args, PyObject *kwargs) {
-  intptr_t cache = 0;
-  if (!PyArg_ParseTuple(args, "l", &cache)) {
-    return NULL;
-  }
-  delete reinterpret_cast<EMDRelaxedCache*>(cache);
-  return Py_None;
+  return cache_fini<EMDRelaxedCache>(args);
 }
 
 static PyObject *py_emd_cache_init(PyObject *self, PyObject *args, PyObject *kwargs) {
-  uint32_t size = 0;
-  if (!PyArg_ParseTuple(args, "I", &size)) {
-    return NULL;
-  }
-  auto cache = new EMDCache();
-  cache->allocate(size);
-  return Py_BuildValue("l", cache);
+  return cache_init<EMDCache>(args);
 }
 
 static PyObject *py_emd_cache_fini(PyObject *self, PyObject *args, PyObject *kwargs) {
-  intptr_t cache = 0;
-  if (!PyArg_ParseTuple(args, "l", &cache)) {
-    return NULL;
-  }
-  delete reinterpret_cast<EMDCache*>(cache);
-  return Py_None;
+  return cache_fini<EMDCache>(args);
 }
