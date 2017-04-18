@@ -1,65 +1,24 @@
-from multiprocessing import cpu_count
-import os
-from setuptools import setup
-from setuptools.command.build_py import build_py
-from setuptools.dist import Distribution
-from shutil import copyfile
-from subprocess import check_call
-from sys import platform
+from setuptools import setup, Extension
+import platform
+import numpy
 
 
 PACKAGE = "wmd"
 
+CXX_FLAGS = {
+   "Darwin": ["-std=c++11", "-march=native", "-ftree-vectorize", "-DNDEBUG",
+              "-Wno-sign-compare", "-flto"],
+   "Linux": ["-fopenmp", "-std=c++11", "-march=native", "-ftree-vectorize",
+             "-DNDEBUG", "-Wno-sign-compare", "-flto"],
+   "Windows": ["/openmp", "/std:c++latest", "/arch:AVX2", "/DNDEBUG", "/LTCG",
+               "/GL"]
+}
 
-class SetupConfigurationError(Exception):
-    pass
-
-
-class CMakeBuild(build_py):
-    SHLIB = "libwmdrelax.so"
-
-    def run(self):
-        if not self.dry_run:
-            self._build()
-        super(CMakeBuild, self).run()
-
-    def get_outputs(self, *args, **kwargs):
-        outputs = super(CMakeBuild, self).get_outputs(*args, **kwargs)
-        outputs.extend(self._shared_lib)
-        return outputs
-
-    def _build(self, builddir=None):
-        if platform != "darwin":
-            cuda_toolkit_dir = os.getenv("CUDA_TOOLKIT_ROOT_DIR")
-            if cuda_toolkit_dir is None:
-                raise SetupConfigurationError(
-                    "CUDA_TOOLKIT_ROOT_DIR environment variable must be defined")
-            check_call(("cmake", "-DCMAKE_BUILD_TYPE=Release",
-                        "-DCUDA_TOOLKIT_ROOT_DIR=%s" % cuda_toolkit_dir, "."))
-        else:
-            ccbin = os.getenv("CUDA_HOST_COMPILER", "/usr/bin/clang")
-            env = dict(os.environ)
-            env.setdefault("CC", "/usr/local/opt/llvm/bin/clang")
-            env.setdefault("CXX", "/usr/local/opt/llvm/bin/clang++")
-            env.setdefault("LDFLAGS", "-L/usr/local/opt/llvm/lib/")
-            check_call(("cmake", "-DCMAKE_BUILD_TYPE=Release",
-                        "-DCUDA_HOST_COMPILER=%s" % ccbin, "-DSUFFIX=.so", "."),
-                       env=env)
-        check_call(("make", "-j%d" % cpu_count()))
-        dest_dir = os.path.join(self.build_lib, PACKAGE)
-        self.mkpath(dest_dir)
-        dest = os.path.join(dest_dir, self.SHLIB)
-        copyfile(self.SHLIB, dest)
-        self._shared_lib = [dest]
-
-
-class BinaryDistribution(Distribution):
-    """Distribution which always forces a binary package with platform name"""
-    def has_ext_modules(self):
-        return True
-
-    def is_pure(self):
-        return False
+LD_FLAGS = {
+    "Darwin": ["-flto"],
+    "Linux": ["-flto"],
+    "Windows": ["/LTCG", "/GL"]
+}
 
 setup(
     name=PACKAGE,
@@ -70,10 +29,16 @@ setup(
     author_email="vadim@sourced.tech",
     url="https://github.com/src-d/wmd-relax",
     download_url="https://github.com/src-d/wmd-relax",
+    ext_modules=[Extension("libwmdrelax", sources=[
+        "python.cc", "or-tools/src/graph/min_cost_flow.cc",
+        "or-tools/src/graph/max_flow.cc", "or-tools/src/base/stringprintf.cc",
+        "or-tools/src/base/logging.cc", "or-tools/src/base/sysinfo.cc",
+        "or-tools/src/util/stats.cc"],
+        extra_compile_args=CXX_FLAGS[platform.system()],
+        extra_link_args=LD_FLAGS[platform.system()],
+        include_dirs=[numpy.get_include(), "or-tools/src"])],
     packages=[PACKAGE],
     install_requires=["numpy"],
-    distclass=BinaryDistribution,
-    cmdclass={"build_py": CMakeBuild},
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",

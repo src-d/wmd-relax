@@ -8,6 +8,7 @@
 
 namespace {
 
+/// The cache for emd_relaxed().
 class EMDRelaxedCache : public wmd::Cache {
  public:
   int32_t* boilerplate() const noexcept {
@@ -30,11 +31,21 @@ class EMDRelaxedCache : public wmd::Cache {
 }
 
 
+/// Solves the relaxed EMD problem. The relaxation is tighter than the original
+/// one from the WMD paper. We set f_{ij} \le Q_j instead of dropping it; also,
+/// because the problem is symmetric, we obtain the solution on inputs and
+/// swapped inputs and choose the maximum of the scores.
+/// @param w1 The first array with weights of length `size`.
+/// @param w2 The second array with weights of length `size`.
+/// @param dist The costs matrix of shape `size` x `size`.
+/// @param size The dimensionality of the problem.
+/// @param cache The cache to use. It should be initialized with at least `size`
+///              elements.
 /// @author Wojciech Jabłoński <wj359634@students.mimuw.edu.pl>
 template <typename T>
 T emd_relaxed(const T *__restrict__ w1, const T *__restrict__ w2,
               const T *__restrict__ dist, uint32_t size,
-              const EMDRelaxedCache& cache) {  // at least size elements
+              const EMDRelaxedCache& cache) {
   std::lock_guard<std::mutex> _(cache.enter(size));
   auto boilerplate = cache.boilerplate();
   for (size_t i = 0; i < size; i++) {

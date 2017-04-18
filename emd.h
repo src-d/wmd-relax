@@ -6,8 +6,6 @@
 #include "graph/min_cost_flow.h"
 
 
-/// @author Wojciech Jabłoński <wj359634@students.mimuw.edu.pl>
-
 namespace {
 
 
@@ -15,6 +13,7 @@ const int64_t MASS_MULT = 1000 * 1000 * 1000;   // weights quantization constant
 const int64_t COST_MULT = 1000 * 1000;          // costs quantization constant
 
 
+/// The cache for emd().
 class EMDCache : public wmd::Cache {
  public:
   bool* side() const noexcept {
@@ -71,6 +70,7 @@ class EMDCache : public wmd::Cache {
 };
 
 
+/// Used by emd() to convert the problem to min cost flow.
 template <typename T>
 void convert_weights(const T*__restrict__ in, bool sign,
                      int64_t*__restrict__ out, size_t size) {
@@ -103,6 +103,7 @@ void convert_weights(const T*__restrict__ in, bool sign,
 }
 
 
+/// Used by emd() to convert the problem to min cost flow.
 template <typename T>
 void convert_costs(const T*__restrict__ in, const bool*__restrict__ side,
                    int64_t*__restrict__ out, size_t size) {
@@ -126,6 +127,15 @@ void convert_costs(const T*__restrict__ in, const bool*__restrict__ side,
 }   // namespace
 
 
+/// Solves the exact EMD problem. Internally, it converts the conditions to
+/// a min cost flow statement and calls operations_research::SimpleMinCostFlow.
+/// @param w1 The first array with weights of length `size`.
+/// @param w2 The second array with weights of length `size`.
+/// @param dist The costs matrix of shape `size` x `size`.
+/// @param size The dimensionality of the problem.
+/// @param cache The cache to use. It should be initialized with at least `size`
+///              elements.
+/// @author Wojciech Jabłoński <wj359634@students.mimuw.edu.pl>
 template <typename T>
 T emd(const T*__restrict__ w1, const T*__restrict__ w2,
       const T*__restrict__ dist, uint32_t size, const EMDCache& cache) {

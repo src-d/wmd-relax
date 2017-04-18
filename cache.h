@@ -6,6 +6,19 @@
 
 namespace wmd {
 
+/// This is supposed to be the base class for all the other caches.
+/// "Cache" here means the carrier of reusable buffers which should eliminate
+/// memory allocations. It should be used as follows:
+///
+/// Cache instance;
+/// instance.allocate(100500);
+/// // thread safety
+/// {
+///   // the problem size is 100
+///   std::lock_guard<std::mutex> _(instance.enter(100));
+///   auto whatever = instance.whatever();
+///   // ... use whatever ...
+/// }
 class Cache {
  public:
   enum AllocationError {
