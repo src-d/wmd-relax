@@ -42,8 +42,20 @@ with the corresponding weights. All numpy arrays must be float32. The return
 format is the list of tuples with sample identifiers and relevancy
 indices (lower the better).
 
-It is possible to use this package with [spaCy](https://github.com/explosion/spaCy),
-see the [example](spacy_example.py).
+It is possible to use this package with [spaCy](https://github.com/explosion/spaCy):
+
+```python
+import spacy
+import wmd
+
+nlp = spacy.load('en', create_pipeline=wmd.WMD.create_spacy_pipeline)
+doc1 = nlp("Politician speaks to the media in Illinois.")
+doc2 = nlp("The president greets the press in Chicago.")
+print(doc1.similarity(doc2))
+```
+
+Besides, see another [example](spacy_example.py) which finds similar Wikipedia
+pages.
 
 ### Building from source
 

@@ -1,3 +1,4 @@
+from collections import defaultdict
 import logging
 import heapq
 import itertools
@@ -336,3 +337,54 @@ class WMD(object):
         neighbors = [(-n[0], n[1]) for n in neighbors]
         neighbors.sort()
         return [(n[1], n[0]) for n in neighbors]
+
+    class SpacySimilarityHook(object):
+        def __init__(self, nlp, **kwargs):
+            self.nlp = nlp
+            self.ignore_stops = kwargs.get("ignore_stops", True)
+            self.only_alpha = kwargs.get("only_alpha", True)
+            self.frequency_processor = kwargs.get(
+                "frequency_processor", lambda t, f: numpy.log(1 + f))
+
+        def __call__(self, doc):
+            doc.user_hooks["similarity"] = self.compute_similarity
+            doc.user_span_hooks["similarity"] = self.compute_similarity
+
+        def compute_similarity(self, doc1, doc2):
+            doc1 = self._convert_document(doc1)
+            doc2 = self._convert_document(doc2)
+            vocabulary = {
+                w: i for i, w in enumerate(sorted(set(doc1).union(doc2)))}
+            w1 = self._generate_weights(doc1, vocabulary)
+            w2 = self._generate_weights(doc2, vocabulary)
+            evec = numpy.zeros((len(vocabulary), self.nlp.vocab.vectors_length),
+                               dtype=numpy.float32)
+            for w, i in vocabulary.items():
+                evec[i] = self.nlp.vocab[w].vector
+            evec_sqr = (evec * evec).sum(axis=1)
+            dists = evec_sqr - 2 * evec.dot(evec.T) + evec_sqr[:, numpy.newaxis]
+            dists[dists < 0] = 0
+            dists = numpy.sqrt(dists)
+            return libwmdrelax.emd(w1, w2, dists)
+
+        def _convert_document(self, doc):
+            words = defaultdict(int)
+            for t in doc:
+                if self.only_alpha and not t.is_alpha:
+                    continue
+                if self.ignore_stops and t.is_stop:
+                    continue
+                words[t.orth] += 1
+            return {t: self.frequency_processor(t, v) for t, v in words.items()}
+
+        def _generate_weights(self, doc, vocabulary):
+            w = numpy.zeros(len(vocabulary), dtype=numpy.float32)
+            for t, v in doc.items():
+                w[vocabulary[t]] = v
+            w /= w.sum()
+            return w
+
+
+    @classmethod
+    def create_spacy_pipeline(cls, nlp, **kwargs):
+        return [nlp.tagger, nlp.parser, cls.SpacySimilarityHook(nlp, **kwargs)]
