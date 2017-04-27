@@ -1,0 +1,24 @@
+language: python
+sudo: false
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - gcc-5
+    - g++-5
+cache:
+  directories:
+    - $HOME/.cache/pip
+python:
+  - "3.4"
+  - "3.5"
+  - "3.6"
+install:
+  - pip install --upgrade pip
+  - pip install numpy scipy
+  - CC=gcc-5 CXX=g++-5 pip install -e .
+script:
+  - python3 -m unittest discover .
+notifications:
+  email: false
