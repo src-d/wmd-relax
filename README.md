@@ -6,6 +6,8 @@ Calculates Word Mover's Distance as described in
 [From Word Embeddings To Document Distances](http://www.cs.cornell.edu/~kilian/papers/wmd_metric.pdf)
 by Matt Kusner, Yu Sun, Nicholas Kolkin and Kilian Weinberger.
 
+<img src="https://blog.sourced.tech/post/lapjv/wmd.png" alt="Word Mover's Distance" width="200"/>
+
 The high level logic is written in Python, the low level functions related to
 linear programming are offloaded to the bundled native extension. The native
 extension can be built as a generic shared library not related to Python at all.
