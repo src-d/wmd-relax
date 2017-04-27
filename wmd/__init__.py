@@ -1,5 +1,6 @@
 import logging
 import heapq
+import itertools
 import os
 import sys
 from time import time
@@ -34,7 +35,10 @@ class TailVocabularyOptimizer(object):
         if len(words) > vocabulary_max * 2:
             indices = numpy.argpartition(weights, len(weights) - vocabulary_max)
             indices = indices[-vocabulary_max:]
-            words = words[indices]
+            try:
+                words = words[indices]
+            except TypeError:
+                words = numpy.array(words)[indices]
             weights = weights[indices]
             return words, weights
 
@@ -93,6 +97,26 @@ class WMD(object):
     def embeddings(self, value):
         if not hasattr(value, "__getitem__"):
             raise TypeError("embeddings must support [] indexing")
+        try:
+            two_ids = list(itertools.islice(value, 2))
+            try:
+                value[two_ids]
+            except TypeError:
+                # List indexing is not supported - we can fix it automatically
+                class WrappedEmbeddings(object):
+                    def __init__(self, items):
+                        self.items = items
+
+                    def __getitem__(self, item):
+                        if not hasattr(item, "__iter__") or \
+                                isinstance(item, (str, bytes)):
+                            return self.items[item]
+                        return numpy.array([self.items[i] for i in item],
+                                           dtype=numpy.float32)
+
+                value = WrappedEmbeddings(value)
+        except TypeError:
+            pass
         self._embeddings = value
         self._reset_caches()
 

@@ -11,6 +11,38 @@ extension can be built as a generic shared library not related to Python at all.
 [google/or-tools](https://github.com/google/or-tools).
 
 
+### Usage
+
+You should have the embeddings numpy array and the nbow model - that is,
+every sample is a weighted set of items, and every item is embedded.
+
+```python
+import numpy
+from wmd import WMD
+
+embeddings = numpy.array([[0.1, 1], [1, 0.1]], dtype=numpy.float32)
+nbow = {"first":  ("#1", [0, 1], numpy.array([1.5, 0.5], dtype=numpy.float32)),
+        "second": ("#2", [0, 1], numpy.array([0.75, 0.15], dtype=numpy.float32))}
+calc = WMD(embeddings, nbow, vocabulary_min=2)
+print(calc.nearest_neighbors("first"))
+```
+```
+[('second', 0.10606599599123001)]
+```
+
+`embeddings` must support `__getitem__` which returns an item by it's
+identifier; particularly, `numpy.ndarray` matches that interface.
+`nbow` must be iterable - returns sample identifiers - and support
+`__getitem__` by those identifiers which returns tuples of length 3.
+The first element is the human-readable name of the sample, the
+second is an iterable with item identifiers and the third is `numpy.ndarray`
+with the corresponding weights. All numpy arrays must be float32. The return
+format is the list of tuples with sample identifiers and relevancy
+indices (lower the better).
+
+It is possible to use this package with [spaCy](https://github.com/explosion/spaCy),
+see the [example](spacy_example.py).
+
 ### Building from source
 
 Either build it as a Python package:
