@@ -1,3 +1,10 @@
+// fix inttypes for GCC
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
+#include <cinttypes>
+// fix for the fix - it conflicts with numpy
+#undef __STDC_FORMAT_MACROS
 #include <cstdint>
 #include <cmath>
 #include <algorithm>
@@ -88,11 +95,11 @@ void convert_weights(const T*__restrict__ in, bool sign,
     out[i] += w * mult;
   }
   if (sum != MASS_MULT) {
-    if (abs(sum - MASS_MULT + 0.) / MASS_MULT > 0.0000001) {
+    if (fabs(sum - MASS_MULT + 0.) / MASS_MULT > 0.0000001) {
 #ifndef NDEBUG
       assert(sum == MASS_MULT && "Masses on one side not sufficiently normalized.");
 #else
-      fprintf(stderr, "wmd: weights are not normalized: %li != %li\n",
+      fprintf(stderr, "wmd: weights are not normalized: %" PRId64 " != %" PRId64 "\n",
               sum, MASS_MULT);
 #endif
     } else {

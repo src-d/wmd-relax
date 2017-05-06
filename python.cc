@@ -1,7 +1,11 @@
+// fix inttypes for GCC
+#define __STDC_FORMAT_MACROS
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <Python.h>
+// fix for the fix - it conflicts with numpy
+#undef __STDC_FORMAT_MACROS
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/arrayobject.h>
 #include "emd.h"
