@@ -15,6 +15,13 @@ extension can be built as a generic shared library not related to Python at all.
 [google/or-tools](https://github.com/google/or-tools).
 
 
+### Installation
+
+```
+pip3 install wmd
+```
+Tested on Linux and macOS.
+
 ### Usage
 
 You should have the embeddings numpy array and the nbow model - that is,
