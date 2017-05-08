@@ -85,10 +85,16 @@ class WMD(object):
         self.main_loop_log_interval = main_loop_log_interval
 
     def __del__(self):
-        if self._relax_cache is not None:
-            libwmdrelax.emd_relaxed_cache_fini(self._relax_cache)
-        if self._exact_cache is not None:
-            libwmdrelax.emd_cache_fini(self._exact_cache)
+        try:
+            if self._relax_cache is not None:
+                libwmdrelax.emd_relaxed_cache_fini(self._relax_cache)
+        except AttributeError:
+            pass
+        try:
+            if self._exact_cache is not None:
+                libwmdrelax.emd_cache_fini(self._exact_cache)
+        except AttributeError:
+            pass
 
     @property
     def embeddings(self):
@@ -277,6 +283,7 @@ class WMD(object):
                           skipped_stop=0.999):
         if isinstance(origin, (tuple, list)):
             words, weights = origin
+            weights = numpy.array(weights, dtype=numpy.float32)
             index = None
             avg = self._get_centroid(words, weights)
         else:
