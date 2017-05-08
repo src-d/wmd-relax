@@ -223,9 +223,9 @@ class WMD(object):
         nw2[numpy.searchsorted(joint, words2)] = weights2
         return joint, nw1, nw2
 
-    def _get_centroid(self, words, weights):
+    def _get_centroid(self, words, weights, force=False):
         n = weights.sum()
-        if n <= 0 or len(words) < self.vocabulary_min:
+        if n <= 0 or (len(words) < self.vocabulary_min and not force):
             return None
         wsum = (self.embeddings[words] * weights[:, numpy.newaxis]).sum(axis=0)
         return wsum / n
@@ -285,7 +285,7 @@ class WMD(object):
             words, weights = origin
             weights = numpy.array(weights, dtype=numpy.float32)
             index = None
-            avg = self._get_centroid(words, weights)
+            avg = self._get_centroid(words, weights, force=True)
         else:
             index = origin
             words, weights = self._get_vocabulary(index)
