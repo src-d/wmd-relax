@@ -249,6 +249,8 @@ class WMD(object):
         dists = evec_sqr - 2 * evec.dot(evec.T) + evec_sqr[:, numpy.newaxis]
         dists[dists < 0] = 0
         dists = numpy.sqrt(dists)
+        for i in range(len(dists)):
+            dists[i, i] = 0
         return libwmdrelax.emd_relaxed(w1, w2, dists, self._relax_cache), \
                w1, w2, dists
 
@@ -261,6 +263,8 @@ class WMD(object):
         dists = evec_sqr - 2 * evec.dot(evec.T) + evec_sqr[:, numpy.newaxis]
         dists[dists < 0] = 0
         dists = numpy.sqrt(dists)
+        for i in range(len(dists)):
+            dists[i, i] = 0
         return libwmdrelax.emd(w1, w2, dists, self._exact_cache)
 
     def cache_centroids(self):
@@ -280,7 +284,7 @@ class WMD(object):
         self._centroid_cache = (keys, centroids)
 
     def nearest_neighbors(self, origin, k=10, early_stop=0.5, max_time=3600,
-                          skipped_stop=0.999):
+                          skipped_stop=0.999, throw=True):
         if isinstance(origin, (tuple, list)):
             words, weights = origin
             weights = numpy.array(weights, dtype=numpy.float32)
@@ -314,8 +318,12 @@ class WMD(object):
         self._log.info("%.1f", time() - ts)
         self._log.info("First K WMD")
         ts = time()
-        neighbors = [(-self._WMD_batch(words, weights, i2), i2)
-                     for (_, i2) in queue[:k]]
+        try:
+            neighbors = [(-self._WMD_batch(words, weights, i2), i2)
+                         for (_, i2) in queue[:k]]
+        except RuntimeError as e:
+            e.keys = [i2 for (_, i2) in queue[:k]]
+            raise e from None
         heapq.heapify(neighbors)
         self._log.info("%s", neighbors[:10])
         self._log.info("%.1f", time() - ts)
@@ -348,11 +356,15 @@ class WMD(object):
             try:
                 d = libwmdrelax.emd(w1, w2, dists, self._exact_cache)
             except RuntimeError as e:
-                e.w1 = w1
-                e.w2 = w2
-                e.dists = dists
-                e.key = i2
-                raise e from None
+                if throw:
+                    e.w1 = w1
+                    e.w2 = w2
+                    e.dists = dists
+                    e.key = i2
+                    raise e from None
+                else:
+                    self._log.error("#%s: %s", i2, e)
+                    continue
             if d < farthest:
                 heapq.heapreplace(neighbors, (-d, i2))
         else:
