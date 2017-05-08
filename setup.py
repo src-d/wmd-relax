@@ -23,7 +23,7 @@ LD_FLAGS = {
 setup(
     name=PACKAGE,
     description="Accelerated functions to calculate Word Mover's Distance",
-    version="1.2.2",
+    version="1.2.3",
     license="MIT",
     author="source{d}",
     author_email="vadim@sourced.tech",

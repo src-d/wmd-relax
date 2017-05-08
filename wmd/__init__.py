@@ -99,7 +99,16 @@ class WMD(object):
         if not hasattr(value, "__getitem__"):
             raise TypeError("embeddings must support [] indexing")
         try:
-            two_ids = list(itertools.islice(value, 2))
+            try:
+                array_like = bool(value[0] == next(iter(value)))
+            except ValueError:
+                array_like = True
+            except KeyError:
+                array_like = False
+            if array_like:
+                two_ids = [0, 1]
+            else:
+                two_ids = list(itertools.islice(value, 2))
             try:
                 value[two_ids]
             except TypeError:
