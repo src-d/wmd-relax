@@ -95,11 +95,12 @@ void convert_weights(const T*__restrict__ in, bool sign,
     out[i] += w * mult;
   }
   if (sum != MASS_MULT) {
-    if (fabs(sum - MASS_MULT + 0.) / MASS_MULT > 0.0000001) {
+    if (fabs(sum - MASS_MULT + 0.) / MASS_MULT > 0.000001) {
 #ifndef NDEBUG
       assert(sum == MASS_MULT && "Masses on one side not sufficiently normalized.");
 #else
-      fprintf(stderr, "wmd: weights are not normalized: %" PRId64 " != %" PRId64 "\n",
+      fprintf(stderr,
+              "wmd: weights are not normalized: %" PRId64 " != %" PRId64 "\n",
               sum, MASS_MULT);
 #endif
     } else {
