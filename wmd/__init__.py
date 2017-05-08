@@ -345,7 +345,14 @@ class WMD(object):
             if estimated_d >= farthest:
                 skipped += 1
                 continue
-            d = libwmdrelax.emd(w1, w2, dists, self._exact_cache)
+            try:
+                d = libwmdrelax.emd(w1, w2, dists, self._exact_cache)
+            except RuntimeError as e:
+                e.w1 = w1
+                e.w2 = w2
+                e.dists = dists
+                e.key = i2
+                raise e from None
             if d < farthest:
                 heapq.heapreplace(neighbors, (-d, i2))
         else:
