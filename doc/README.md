@@ -1,8 +1,14 @@
-For installing Sphinx and Breathe (Doxygen & Sphinx bridge):
+For installing Sphinx:
 
 ```bash
 pip install Sphinx
-pip install breathe
+```
+
+You'll also need the "doxygen" command installed. This is usually
+installed with:
+
+```bash
+(apt or yum or whatever your distro uses) install doxygen
 ```
 
 For generating/updating the API doc: 
