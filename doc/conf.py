@@ -32,7 +32,8 @@ sys.path.insert(0, os.path.abspath('..'))
 # ones.
 extensions = ['sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
-    'sphinx.ext.viewcode']
+    'sphinx.ext.viewcode',
+    'sphinx.ext.intersphinx']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -154,5 +155,6 @@ texinfo_documents = [
      'Miscellaneous'),
 ]
 
+autodoc_default_flags = ['members', 'undoc-members', 'show-inheritance']
 
-
+intersphinx_mapping = {'python': ('https://docs.python.org/3.6', None)}

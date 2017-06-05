@@ -17,12 +17,18 @@ __version__ = (1, 1, 4)
 class TailVocabularyOptimizer(object):
     """
     Implements the distribution tail elimination vocabulary reduction strategy.
+    See :py:attr:`wmd.WMD.vocabulary_optimizer`.
+    
+    .. automethod:: __init__
+    .. automethod:: __call__
     """
     def __init__(self, trigger_ratio=0.75):
         """
         Initializes a new instance of TailVocabularyOptimizer class.
-        :param trigger_ratio: The ratio of the size and the vocabulary max size
+
+        :param trigger_ratio: The ratio of the size and the vocabulary max size\
                               to enable the optimization.
+        :type trigger_ratio: float
         """
         self._trigger_ratio = trigger_ratio
 
@@ -31,6 +37,9 @@ class TailVocabularyOptimizer(object):
         """
         Gets the current value of the minimum size ratio which enables the
         optimization.
+    
+        :return: trigger_ratio.
+        :rtype: float.
         """
         return self._trigger_ratio
 
@@ -38,7 +47,9 @@ class TailVocabularyOptimizer(object):
     def trigger_ratio(self, value):
         """
         Sets the value of the minimum size ratio which enables the optimization.
+
         :param value: number greater than 0 and less than or equal to 1.
+        :type value: float
         """
         if value <= 0 or value > 1:
             raise ValueError("trigger_ratio must lie in (0, 1]")
@@ -85,22 +96,42 @@ class TailVocabularyOptimizer(object):
 
 
 class WMD(object):
+    """
+    The main class to work with Word Mover's Distance.
+    The details are in the paper `From Word Embeddings To Document Distances <http://www.cs.cornell.edu/~kilian/papers/wmd_metric.pdf>`_
+    by Matt Kusner, Yu Sun, Nicholas Kolkin and Kilian Weinberger.
+    To calculate the nearest neighbors by WMD, use
+    :func:`~wmd.WMD.nearest_neighbors()`.
+    
+    .. automethod:: __init__
+    """
     def __init__(self, embeddings, nbow, vocabulary_min=50, vocabulary_max=500,
                  vocabulary_optimizer=TailVocabularyOptimizer(),
                  verbosity=logging.INFO, main_loop_log_interval=60):
         """
         Initializes a new instance of WMD class.
+
         :param embeddings: The embeddings model, see WMD.embeddings.
         :param nbow: The nBOW model, see WMD.nbow.
-        :param vocabulary_min: The minimum bag size, see WMD.vocabulary_min.
-        :param vocabulary_max: The maximum bag size, see WMD.vocabulary_max.
-        :param vocabulary_optimizer: The bag size reducer, see
-                                     WMD.vocabulary_optimizer.
+        :param vocabulary_min: The minimum bag size, see \
+                               :py:attr:`~wmd.WMD.vocabulary_min`.
+        :param vocabulary_max: The maximum bag size, see \
+                               :py:attr:`~wmd.WMD.vocabulary_max`.
+        :param vocabulary_optimizer: The bag size reducer, see \
+                                     :py:attr:`~wmd.WMD.vocabulary_optimizer`.
         :param verbosity: The log verbosity level.
-        :param main_loop_log_interval: Time frequency of logging updates, see
-                                       WMD.main_loop_log_interval.
-        .. raises::
-            TypeError, ValueError if some of the arguments are invalid.
+        :param main_loop_log_interval: Time frequency of logging updates, see \
+                                       :py:attr:`~wmd.WMD.main_loop_log_interval`.
+        :type embeddings: object with :meth:`~object.__getitem__`
+        :type nbow: object with :meth:`~object.__iter__` and \
+                    :meth:`~object.__getitem__`
+        :type vocabulary_min: int
+        :type vocabulary_max: int
+        :type vocabulary_optimizer: callable
+        :type verbosity: int
+        :type main_loop_log_interval: int
+        :raises TypeError: if some of the arguments are invalid.
+        :raises ValueError: if some of the arguments are invalid.
         """
         self._relax_cache = None
         self._exact_cache = None
@@ -133,20 +164,23 @@ class WMD(object):
     def embeddings(self):
         """
         Gets the current embeddings model.
+
+        :rtype: object
         """
         return self._embeddings
 
     @embeddings.setter
     def embeddings(self, value):
         """
-        Sets the embeddings model. It must support __getitem__, and it will be
-        cool if it supports sliced __getitem__, too. If the latter is not the
-        case, a shim is generated which calls __getitem__ for every element of
-        the slice *but* the value must be iterable then. Invalidates the
-        centroid cache.
-        :param value: An object with __getitem__.
-        .. raises::
-            TypeError if the object does not have __getitem__.
+        Sets the embeddings model. It must support :meth:`~object.__getitem__`,
+        and it will be cool if it supports sliced :meth:`~object.__getitem__`,
+        too. If the latter is not the case, a shim is generated which calls
+        :meth:`~object.__getitem__` for every element of the slice *but* the
+        value must be iterable then. Invalidates the centroid cache.
+
+        :param value: An object with :meth:`~object.__getitem__`.
+        :raises TypeError: if the object does not have \
+                           :meth:`~object.__getitem__`.
         """
         if not hasattr(value, "__getitem__"):
             raise TypeError("embeddings must support [] indexing (__getitem__)")
@@ -186,17 +220,22 @@ class WMD(object):
     def nbow(self):
         """
         Gets the current nBOW model.
+
+        :rtype: object.
         """
         return self._nbow
 
     @nbow.setter
     def nbow(self, value):
         """
-        Sets the nBOW model. It must support __iter__ and __getitem__.
+        Sets the nBOW model. It must support :meth:`~object.__iter__` and \
+                             :meth:`~object.__getitem__`.
         Invalidates the centroid cache.
-        :param value: An object which has __iter__ and __getitem__.
-        .. raises::
-            TypeError if the value does not have __iter__ or __getitem__.
+
+        :param value: An object which has :meth:`~object.__iter__` and
+                      :meth:`~object.__getitem__`.
+        :raises TypeError: if the value does not have :meth:`~object.__iter__`
+                           or :meth:`~object.__getitem__`.
         """
         if not hasattr(value, "__iter__") or not hasattr(value, "__getitem__"):
             raise TypeError("nbow must be iterable and support [] indexing")
@@ -207,7 +246,10 @@ class WMD(object):
     def vocabulary_min(self):
         """
         Gets the current minimum allowed vocabulary (bag) size. Samples with
-        less number of elements are ignored by WMD.nearest_neighbors().
+        less number of elements are ignored by
+        :func:`~wmd.WMD.nearest_neighbors()`.
+
+        :rtype: int.
         """
         return self._vocabulary_min
 
@@ -216,8 +258,10 @@ class WMD(object):
         """
         Sets the minimum allowed vocabulary (bag) size. Must be positive.
         Invalidates the centroid cache.
-        .. raises::
-            ValueError if the value is greater than vocabulary_max or <= 0.
+
+        :param value: the new minimum size which must be positive.
+        :type value: int
+        :raises ValueError: if the value is greater than vocabulary_max or <= 0.
         """
         value = int(value)
         if value <= 0:
@@ -244,9 +288,10 @@ class WMD(object):
         Sets the maximum allowed vocabulary (bag) size. Samples with greater
         number of items will be truncated. Must be positive. Invalidates all
         the caches.
-        :param value: positive int, the new minimum size.
-        .. raises::
-            ValueError if the value is less than vocabulary_min or <= 0.
+
+        :param value: the new maximum size which must be positive.
+        :type value: int
+        :raises ValueError: if the value is less than vocabulary_min or <= 0.
         """
         value = int(value)
         if value <= 0:
@@ -271,6 +316,8 @@ class WMD(object):
         """
         Gets the current method of reducing the vocabulary size for each sample.
         Initially, it is an instance of TailVocabularyOptimizer.
+
+        :rtype: object.
         """
         return self._vocabulary_optimizer
 
@@ -280,10 +327,12 @@ class WMD(object):
         Sets the method of reducing the vocabulary size for each sample. It
         must be a callable which takes 3 positional arguments: words, weights
         and the maximum allowed vocabulary size. Invalidates the centroid cache.
+
         :param value: A callable which takes 3 positional arguments: words,
         weights and the maximum allowed vocabulary size, and returns the new
         words and weights. Words and weights are numpy arrays of int and float32
         type correspondingly.
+        :raises ValueError: if the value is not callable.
         """
         if not callable(value) and value is not None:
             raise ValueError("vocabulary_optimizer must be a callable")
@@ -295,6 +344,8 @@ class WMD(object):
         """
         Gets the current minimum time interval in seconds between two
         consecutive status updates through the log.
+
+        :rtype: int.
         """
         return self._main_loop_log_interval
 
@@ -303,7 +354,9 @@ class WMD(object):
         """
         Sets the minimum time interval in seconds between two consecutive status
         updates through the log.
-        :param value: New interval in seconds, either float or int.
+
+        :param value: New interval in seconds.
+        :type value: int
         """
         if not isinstance(value, (float, int)):
             raise TypeError(
@@ -382,7 +435,8 @@ class WMD(object):
         """
         Calculates all the nBOW centroids and saves them into a hidden internal
         attribute. Consumes much memory, but exchanges it for the very fast
-        first stage of WMD.nearest_neighbors().
+        first stage of :func:`~wmd.WMD.nearest_neighbors()`.
+
         :return: None
         """
         keys = []
@@ -404,27 +458,35 @@ class WMD(object):
                           skipped_stop=0.99, throw=True):
         """
         Find the closest samples to the specified one by WMD metric.
+        Call :func:`~wmd.WMD.cache_centroids()` beforehand to accelerate the
+        first (sorting) stage.
+
         :param origin: Identifier of the queried sample.
         :param k: The number of nearest neighbors to return.
-        :param early_stop: Stop after looking through this ratio of the whole
+        :param early_stop: Stop after looking through this ratio of the whole \
                            dataset.
-        :param max_time: Maximum time to run. If the runtime exceeds this
+        :param max_time: Maximum time to run. If the runtime exceeds this \
                          threshold, this method stops.
-        :param skipped_stop: The stop trigger which is the ratio of samples
-                             which have been skipped thanks to the second
-                             relaxation. The closer to 1, the less chance of
+        :param skipped_stop: The stop trigger which is the ratio of samples \
+                             which have been skipped thanks to the second \
+                             relaxation. The closer to 1, the less chance of \
                              missing an important nearest neighbor.
-        :param throw: If true, when an invalid sample is evaluated, an
+        :param throw: If true, when an invalid sample is evaluated, an \
                       exception is thrown instead of logging.
-        :return List of tuples, each tuple has length 2. The first element
-                is a sample identifier, the second is the WMD. This list
-                is sorted in distance ascending order, so the first tuple is
-                the closest sample.
+        :type origin: suitable for :py:attr:`~wmd.WMD.nbow`
+        :type k: int 
+        :type early_stop: float
+        :type max_time: int
+        :type skipped_stop: float
+        :type throw: bool
+        :return: List of tuples, each tuple has length 2. The first element \
+                 is a sample identifier, the second is the WMD. This list \
+                 is sorted in distance ascending order, so the first tuple is \
+                 the closest sample.
                  
-        .. raises::
-            ValueError if the queried entity has too small vocabulary (see
-            WMD.vocabulary_min).
-            RuntimeError if the native code which calculates the EMD fails.
+        :raises ValueError: if the queried entity has too small vocabulary \
+                            (see :py:attr:`~wmd.WMD.vocabulary_min`).
+        :raises RuntimeError: if the native code which calculates the EMD fails.
         """
         # origin can be either a text query or an id
         if isinstance(origin, (tuple, list)):
@@ -519,19 +581,27 @@ class WMD(object):
         """
         This guy is needed for the integration with spaCy. Use it like this:
         
+        ::
+    
            nlp = spacy.load('en', create_pipeline=wmd.WMD.create_spacy_pipeline)
-           
-        It defines WMD.SpacySimilarityHook.compute_similarity() method which is
-        called by spaCy over pairs of documents.
+        
+        It defines :func:`~wmd.WMD.SpacySimilarityHook.compute_similarity()` \
+        method which is called by spaCy over pairs of documents.
+        
+        .. automethod:: wmd::WMD.SpacySimilarityHook.__init__
         """
         def __init__(self, nlp, **kwargs):
             """
             Initializes a new instance of SpacySimilarityHook class.
+    
             :param nlp: spaCy nlp object.
             :param ignore_stops: Indicates whether to ignore the stop words.
             :param only_alpha: Indicates whether only alpha tokens must be used.
-            :param frequency_processor: The function which is applied to raw
+            :param frequency_processor: The function which is applied to raw \
                                         token frequencies.
+            :type ignore_stops: bool
+            :type only_alpha: bool
+            :type frequency_processor: callable
             """
             self.nlp = nlp
             self.ignore_stops = kwargs.get("ignore_stops", True)
@@ -544,6 +614,13 @@ class WMD(object):
             doc.user_span_hooks["similarity"] = self.compute_similarity
 
         def compute_similarity(self, doc1, doc2):
+            """
+            Calculates the similarity between two spaCy documents. Extracts the
+            nBOW from them and evaluates the WMD.
+
+            :return: The calculated similarity.
+            :rtype: float.
+            """
             doc1 = self._convert_document(doc1)
             doc2 = self._convert_document(doc2)
             vocabulary = {
@@ -583,15 +660,19 @@ class WMD(object):
         """
         Provides the spaCy integration. Use this the following way:
         
+        ::
+
            nlp = spacy.load('en', create_pipeline=wmd.WMD.create_spacy_pipeline)
-           
+        
         Please note that if you are going to search for the nearest documents
-        then you should use WMD.nearest_neighbors() instead of evaluating
-        multiple WMDs pairwise, as the former is much optimized and provides a
-        lower complexity.
+        then you should use :func:`~wmd.WMD.nearest_neighbors()` instead of
+        evaluating multiple WMDs pairwise, as the former is much optimized and
+        provides a lower complexity.
+
         :param nlp: spaCy nlp object.
-        :param kwargs: ignore_stops, only_alpha and frequency_processor. Refer
-                       to WMD.SpacySimilarityHook.__init__.
-        :return: The pipeline list.
+        :param kwargs: ignore_stops, only_alpha and frequency_processor. Refer \
+                       to :func:`~wmd.WMD.SpacySimilarityHook.__init__()`.
+        :return: The spaCy pipeline.
+        :rtype: list.
         """
         return [nlp.tagger, nlp.parser, cls.SpacySimilarityHook(nlp, **kwargs)]
