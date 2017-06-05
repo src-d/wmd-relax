@@ -1,5 +1,17 @@
-- For generating/updating the API doc: 
-    sphinx-apidoc -o wmd ../wmd/
+For installing Sphinx:
 
-- For generating/updating the HTML files:
-    make html
+```bash
+pip install Sphinx
+```
+
+For generating/updating the API doc: 
+
+```bash
+sphinx-apidoc -o wmd ../wmd/
+```
+
+For generating/updating the HTML files:
+
+```
+make html
+```
