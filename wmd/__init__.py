@@ -15,15 +15,31 @@ __version__ = (1, 1, 4)
 
 
 class TailVocabularyOptimizer(object):
+    """
+    Implements the distribution tail elimination vocabulary reduction strategy.
+    """
     def __init__(self, trigger_ratio=0.75):
+        """
+        Initializes a new instance of TailVocabularyOptimizer class.
+        :param trigger_ratio: The ratio of the size and the vocabulary max size
+                              to enable the optimization.
+        """
         self._trigger_ratio = trigger_ratio
 
     @property
     def trigger_ratio(self):
+        """
+        Gets the current value of the minimum size ratio which enables the
+        optimization.
+        """
         return self._trigger_ratio
 
     @trigger_ratio.setter
     def trigger_ratio(self, value):
+        """
+        Sets the value of the minimum size ratio which enables the optimization.
+        :param value: number greater than 0 and less than or equal to 1.
+        """
         if value <= 0 or value > 1:
             raise ValueError("trigger_ratio must lie in (0, 1]")
         self._trigger_ratio = value
@@ -72,6 +88,20 @@ class WMD(object):
     def __init__(self, embeddings, nbow, vocabulary_min=50, vocabulary_max=500,
                  vocabulary_optimizer=TailVocabularyOptimizer(),
                  verbosity=logging.INFO, main_loop_log_interval=60):
+        """
+        Initializes a new instance of WMD class.
+        :param embeddings: The embeddings model, see WMD.embeddings.
+        :param nbow: The nBOW model, see WMD.nbow.
+        :param vocabulary_min: The minimum bag size, see WMD.vocabulary_min.
+        :param vocabulary_max: The maximum bag size, see WMD.vocabulary_max.
+        :param vocabulary_optimizer: The bag size reducer, see
+                                     WMD.vocabulary_optimizer.
+        :param verbosity: The log verbosity level.
+        :param main_loop_log_interval: Time frequency of logging updates, see
+                                       WMD.main_loop_log_interval.
+        .. raises::
+            TypeError, ValueError if some of the arguments are invalid.
+        """
         self._relax_cache = None
         self._exact_cache = None
         self._centroid_cache = None
@@ -85,6 +115,9 @@ class WMD(object):
         self.main_loop_log_interval = main_loop_log_interval
 
     def __del__(self):
+        """
+        Attempts to clear the native caches.
+        """
         try:
             if self._relax_cache is not None:
                 libwmdrelax.emd_relaxed_cache_fini(self._relax_cache)
@@ -483,7 +516,23 @@ class WMD(object):
         return [(n[1], n[0]) for n in neighbors]
 
     class SpacySimilarityHook(object):
+        """
+        This guy is needed for the integration with spaCy. Use it like this:
+        
+           nlp = spacy.load('en', create_pipeline=wmd.WMD.create_spacy_pipeline)
+           
+        It defines WMD.SpacySimilarityHook.compute_similarity() method which is
+        called by spaCy over pairs of documents.
+        """
         def __init__(self, nlp, **kwargs):
+            """
+            Initializes a new instance of SpacySimilarityHook class.
+            :param nlp: spaCy nlp object.
+            :param ignore_stops: Indicates whether to ignore the stop words.
+            :param only_alpha: Indicates whether only alpha tokens must be used.
+            :param frequency_processor: The function which is applied to raw
+                                        token frequencies.
+            """
             self.nlp = nlp
             self.ignore_stops = kwargs.get("ignore_stops", True)
             self.only_alpha = kwargs.get("only_alpha", True)
@@ -531,4 +580,18 @@ class WMD(object):
 
     @classmethod
     def create_spacy_pipeline(cls, nlp, **kwargs):
+        """
+        Provides the spaCy integration. Use this the following way:
+        
+           nlp = spacy.load('en', create_pipeline=wmd.WMD.create_spacy_pipeline)
+           
+        Please note that if you are going to search for the nearest documents
+        then you should use WMD.nearest_neighbors() instead of evaluating
+        multiple WMDs pairwise, as the former is much optimized and provides a
+        lower complexity.
+        :param nlp: spaCy nlp object.
+        :param kwargs: ignore_stops, only_alpha and frequency_processor. Refer
+                       to WMD.SpacySimilarityHook.__init__.
+        :return: The pipeline list.
+        """
         return [nlp.tagger, nlp.parser, cls.SpacySimilarityHook(nlp, **kwargs)]
