@@ -13,6 +13,14 @@ wmd-relax's documentation
 .. automodule:: wmd
     :members:
 
+`Doxygen docs <../../doxyhtml/files.html>`_
+
+Doxygen docs
+============
+
+`Doxygen docs <../../doxyhtml/files.html>`_
+
+
 Indices and tables
 ==================
 
