@@ -579,14 +579,16 @@ class WMD(object):
 
     class SpacySimilarityHook(object):
         """
-        This guy is needed for the integration with spaCy. Use it like this:
+        This guy is needed for the integration with `spaCy <https://spacy.io>`_.
+        Use it like this:
         
         ::
     
            nlp = spacy.load('en', create_pipeline=wmd.WMD.create_spacy_pipeline)
         
         It defines :func:`~wmd.WMD.SpacySimilarityHook.compute_similarity()` \
-        method which is called by spaCy over pairs of documents.
+        method which is called by spaCy over pairs of
+        `documents <https://spacy.io/docs/api/doc>`_.
         
         .. automethod:: wmd::WMD.SpacySimilarityHook.__init__
         """
@@ -594,7 +596,7 @@ class WMD(object):
             """
             Initializes a new instance of SpacySimilarityHook class.
     
-            :param nlp: spaCy nlp object.
+            :param nlp: `spaCy language object <https://spacy.io/docs/api/language>`_.
             :param ignore_stops: Indicates whether to ignore the stop words.
             :param only_alpha: Indicates whether only alpha tokens must be used.
             :param frequency_processor: The function which is applied to raw \
@@ -658,7 +660,8 @@ class WMD(object):
     @classmethod
     def create_spacy_pipeline(cls, nlp, **kwargs):
         """
-        Provides the spaCy integration. Use this the following way:
+        Provides the integration with `spaCy <https://spacy.io>`_. Use this the
+        following way:
         
         ::
 
@@ -669,7 +672,7 @@ class WMD(object):
         evaluating multiple WMDs pairwise, as the former is much optimized and
         provides a lower complexity.
 
-        :param nlp: spaCy nlp object.
+        :param nlp: `spaCy language object <https://spacy.io/docs/api/language>`_.
         :param kwargs: ignore_stops, only_alpha and frequency_processor. Refer \
                        to :func:`~wmd.WMD.SpacySimilarityHook.__init__()`.
         :return: The spaCy pipeline.
