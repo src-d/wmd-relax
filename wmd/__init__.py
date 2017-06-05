@@ -98,12 +98,25 @@ class WMD(object):
 
     @property
     def embeddings(self):
+        """
+        Gets the current embeddings model.
+        """
         return self._embeddings
 
     @embeddings.setter
     def embeddings(self, value):
+        """
+        Sets the embeddings model. It must support __getitem__, and it will be
+        cool if it supports sliced __getitem__, too. If the latter is not the
+        case, a shim is generated which calls __getitem__ for every element of
+        the slice *but* the value must be iterable then. Invalidates the
+        centroid cache.
+        :param value: An object with __getitem__.
+        .. raises::
+            TypeError if the object does not have __getitem__.
+        """
         if not hasattr(value, "__getitem__"):
-            raise TypeError("embeddings must support [] indexing")
+            raise TypeError("embeddings must support [] indexing (__getitem__)")
         try:
             try:
                 array_like = bool(value[0] == next(iter(value)))
@@ -138,10 +151,20 @@ class WMD(object):
 
     @property
     def nbow(self):
+        """
+        Gets the current nBOW model.
+        """
         return self._nbow
 
     @nbow.setter
     def nbow(self, value):
+        """
+        Sets the nBOW model. It must support __iter__ and __getitem__.
+        Invalidates the centroid cache.
+        :param value: An object which has __iter__ and __getitem__.
+        .. raises::
+            TypeError if the value does not have __iter__ or __getitem__.
+        """
         if not hasattr(value, "__iter__") or not hasattr(value, "__getitem__"):
             raise TypeError("nbow must be iterable and support [] indexing")
         self._nbow = value
@@ -149,25 +172,58 @@ class WMD(object):
 
     @property
     def vocabulary_min(self):
+        """
+        Gets the current minimum allowed vocabulary (bag) size. Samples with
+        less number of elements are ignored by WMD.nearest_neighbors().
+        """
         return self._vocabulary_min
 
     @vocabulary_min.setter
     def vocabulary_min(self, value):
+        """
+        Sets the minimum allowed vocabulary (bag) size. Must be positive.
+        Invalidates the centroid cache.
+        .. raises::
+            ValueError if the value is greater than vocabulary_max or <= 0.
+        """
         value = int(value)
         if value <= 0:
             raise ValueError("vocabulary_min must be > 0 (got %d)" % value)
+        try:
+            if value > self.vocabulary_max:
+                raise ValueError(
+                    "vocabulary_max may not be less than vocabulary_min")
+        except AttributeError:
+            pass
         self._vocabulary_min = value
         self._reset_caches()
 
     @property
     def vocabulary_max(self):
+        """
+        Gets the current maximum allowed vocabulary (bag) size.
+        """
         return self._vocabulary_max
 
     @vocabulary_max.setter
     def vocabulary_max(self, value):
+        """
+        Sets the maximum allowed vocabulary (bag) size. Samples with greater
+        number of items will be truncated. Must be positive. Invalidates all
+        the caches.
+        :param value: positive int, the new minimum size.
+        .. raises::
+            ValueError if the value is less than vocabulary_min or <= 0.
+        """
         value = int(value)
         if value <= 0:
             raise ValueError("vocabulary_max must be > 0 (got %d)" % value)
+        try:
+            if value < self.vocabulary_min:
+                raise ValueError(
+                    "vocabulary_max may not be less than vocabulary_min")
+        except AttributeError:
+            pass
         self._vocabulary_max = value
         if self._relax_cache is not None:
             libwmdrelax.emd_relaxed_cache_fini(self._relax_cache)
@@ -179,10 +235,23 @@ class WMD(object):
 
     @property
     def vocabulary_optimizer(self):
+        """
+        Gets the current method of reducing the vocabulary size for each sample.
+        Initially, it is an instance of TailVocabularyOptimizer.
+        """
         return self._vocabulary_optimizer
 
     @vocabulary_optimizer.setter
     def vocabulary_optimizer(self, value):
+        """
+        Sets the method of reducing the vocabulary size for each sample. It
+        must be a callable which takes 3 positional arguments: words, weights
+        and the maximum allowed vocabulary size. Invalidates the centroid cache.
+        :param value: A callable which takes 3 positional arguments: words,
+        weights and the maximum allowed vocabulary size, and returns the new
+        words and weights. Words and weights are numpy arrays of int and float32
+        type correspondingly.
+        """
         if not callable(value) and value is not None:
             raise ValueError("vocabulary_optimizer must be a callable")
         self._vocabulary_optimizer = value
@@ -190,10 +259,19 @@ class WMD(object):
 
     @property
     def main_loop_log_interval(self):
+        """
+        Gets the current minimum time interval in seconds between two
+        consecutive status updates through the log.
+        """
         return self._main_loop_log_interval
 
     @main_loop_log_interval.setter
     def main_loop_log_interval(self, value):
+        """
+        Sets the minimum time interval in seconds between two consecutive status
+        updates through the log.
+        :param value: New interval in seconds, either float or int.
+        """
         if not isinstance(value, (float, int)):
             raise TypeError(
                 "main_loop_log_interval must be either float or int")
@@ -268,6 +346,12 @@ class WMD(object):
         return libwmdrelax.emd(w1, w2, dists, self._exact_cache)
 
     def cache_centroids(self):
+        """
+        Calculates all the nBOW centroids and saves them into a hidden internal
+        attribute. Consumes much memory, but exchanges it for the very fast
+        first stage of WMD.nearest_neighbors().
+        :return: None
+        """
         keys = []
         _, words, _ = self.nbow[next(iter(self.nbow))]
         centroids = numpy.zeros(
@@ -284,7 +368,32 @@ class WMD(object):
         self._centroid_cache = (keys, centroids)
 
     def nearest_neighbors(self, origin, k=10, early_stop=0.5, max_time=3600,
-                          skipped_stop=0.999, throw=True):
+                          skipped_stop=0.99, throw=True):
+        """
+        Find the closest samples to the specified one by WMD metric.
+        :param origin: Identifier of the queried sample.
+        :param k: The number of nearest neighbors to return.
+        :param early_stop: Stop after looking through this ratio of the whole
+                           dataset.
+        :param max_time: Maximum time to run. If the runtime exceeds this
+                         threshold, this method stops.
+        :param skipped_stop: The stop trigger which is the ratio of samples
+                             which have been skipped thanks to the second
+                             relaxation. The closer to 1, the less chance of
+                             missing an important nearest neighbor.
+        :param throw: If true, when an invalid sample is evaluated, an
+                      exception is thrown instead of logging.
+        :return List of tuples, each tuple has length 2. The first element
+                is a sample identifier, the second is the WMD. This list
+                is sorted in distance ascending order, so the first tuple is
+                the closest sample.
+                 
+        .. raises::
+            ValueError if the queried entity has too small vocabulary (see
+            WMD.vocabulary_min).
+            RuntimeError if the native code which calculates the EMD fails.
+        """
+        # origin can be either a text query or an id
         if isinstance(origin, (tuple, list)):
             words, weights = origin
             weights = numpy.array(weights, dtype=numpy.float32)
