@@ -40,3 +40,9 @@ libwmdrelax.egg-info/
 *.exe
 *.out
 *.app
+
+# Sphinx stuff
+doc/_build/
+
+# Python 3 cache
+wmd/__pycache__/*
