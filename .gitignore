@@ -44,5 +44,8 @@ libwmdrelax.egg-info/
 # Sphinx stuff
 doc/_build/
 
+# Doxygen
+doc/doxyhtml/*
+
 # Python 3 cache
 wmd/__pycache__/*
