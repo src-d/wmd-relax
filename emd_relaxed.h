@@ -32,7 +32,7 @@ class EMDRelaxedCache : public wmd::Cache {
 
 
 /// Solves the relaxed EMD problem. The relaxation is tighter than the original
-/// one from the WMD paper. We set f_{ij} \le Q_j instead of dropping it; also,
+/// one from the WMD paper. We set f_{ij} &le; Q_j instead of dropping it; also,
 /// because the problem is symmetric, we obtain the solution on inputs and
 /// swapped inputs and choose the maximum of the scores.
 /// @param w1 The first array with weights of length `size`.

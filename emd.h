@@ -13,6 +13,38 @@
 #include "graph/min_cost_flow.h"
 
 
+/*! \mainpage libwmdrelax
+ *
+ * \section s1 C/C++ API
+ * - emd() solves the original Earth Mover's Distance problem.
+ * - emd_relaxed() solves the relaxed problem - one of the two sums is replaced
+ *   with the maximum element.
+ * - EMDCache and EMDRelaxedCache are the caches to prevent from dynamic memory
+ *   allocation.
+ *
+ * Although C/C++ API is complete and totally usable as-is, python.cc provides
+ * the Python 3 API.
+ *
+ * \section s2 Python 3 API
+ *
+ * - emd_relaxed()
+ * - emd_relaxed_cache_init() creates the cache object for emd_relaxed()
+ * - emd_relaxed_cache_fini() destroys the cache object for emd_relaxed()
+ * - emd()
+ * - emd_cache_init() creates the cache object for emd()
+ * - emd_cache_fini() destroys the cache object for emd()
+ *
+ * \section s3 Building
+ *
+ * Normally, the library is built with setup.py as a part of the python package.
+ * Besides, it can be built with cmake. In the latter case, ensure that you've
+ * cloned or-tools submodule:
+ * \code{.unparsed}
+ * git submodule update --init
+ * \endcode
+ */
+
+
 namespace {
 
 
