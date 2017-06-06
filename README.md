@@ -89,6 +89,15 @@ fork of [google/or-tools](https://github.com/google/or-tools) as the git submodu
 
 Tests are in `test.py` and use the stock `unittest` package.
 
+### Documentation
+
+```
+cd doc
+make html
+```
+
+The files are in `doc/doxyhtml` and `doc/html` directories.
+
 ### License
 
 MIT.
