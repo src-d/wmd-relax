@@ -24,7 +24,7 @@
  *
  * Project: https://github.com/src-d/wmd-relax
  *
- * README: https://github.com/src-d/wmd-relax/blob/master/README.md
+ * README: @ref ignore_this_doxygen_anchor
  *
  * @section s1 C/C++ API
  * - emd() solves the original Earth Mover's Distance problem.
