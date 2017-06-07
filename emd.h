@@ -13,9 +13,20 @@
 #include "graph/min_cost_flow.h"
 
 
-/*! \mainpage libwmdrelax
+/*! @mainpage libwmdrelax
  *
- * \section s1 C/C++ API
+ * @section s0 Description
+ * This library allows to efficinetly solve the Earth Mover's Distance
+ * problem (http://homepages.inf.ed.ac.uk/rbf/CVonline/LOCAL_COPIES/RUBNER/emd.htm).
+ * It also solves the relaxed approximation suitable for calculating the
+ * Word Mover's Distance (http://www.cs.cornell.edu/~kilian/papers/wmd_metric.pdf),
+ * hence the name.
+ *
+ * Project: https://github.com/src-d/wmd-relax
+ *
+ * README: https://github.com/src-d/wmd-relax/blob/master/README.md
+ *
+ * @section s1 C/C++ API
  * - emd() solves the original Earth Mover's Distance problem.
  * - emd_relaxed() solves the relaxed problem - one of the two sums is replaced
  *   with the maximum element.
@@ -25,7 +36,7 @@
  * Although C/C++ API is complete and totally usable as-is, python.cc provides
  * the Python 3 API.
  *
- * \section s2 Python 3 API
+ * @section s2 Python 3 API
  *
  * - emd_relaxed()
  * - emd_relaxed_cache_init() creates the cache object for emd_relaxed()
@@ -34,14 +45,14 @@
  * - emd_cache_init() creates the cache object for emd()
  * - emd_cache_fini() destroys the cache object for emd()
  *
- * \section s3 Building
+ * @section s3 Building
  *
  * Normally, the library is built with setup.py as a part of the python package.
  * Besides, it can be built with cmake. In the latter case, ensure that you've
  * cloned or-tools submodule:
- * \code{.unparsed}
+ * @code{.unparsed}
  * git submodule update --init
- * \endcode
+ * @endcode
  */
 
 
@@ -221,3 +232,4 @@ T emd(const T*__restrict__ w1, const T*__restrict__ w2,
 #endif
   return T((result / MASS_MULT) / COST_MULT);
 }
+
