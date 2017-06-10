@@ -1,6 +1,7 @@
 // fix inttypes for GCC
 #define __STDC_FORMAT_MACROS
 #include <memory>
+#include <functional>
 #include <string>
 #include <unordered_map>
 #include <Python.h>
