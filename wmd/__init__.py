@@ -492,6 +492,9 @@ class WMD(object):
         if isinstance(origin, (tuple, list)):
             words, weights = origin
             weights = numpy.array(weights, dtype=numpy.float32)
+            if len(words) > self.vocabulary_max:
+                words, weights = self.vocabulary_optimizer(
+                    words, weights, self.vocabulary_max)
             index = None
             avg = self._get_centroid(words, weights, force=True)
         else:
