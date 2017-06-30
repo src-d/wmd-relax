@@ -59,14 +59,14 @@ class TailVocabularyOptimizer(object):
         if len(words) < vocabulary_max * self.trigger_ratio:
             return words, weights
 
+        if not isinstance(words, numpy.ndarray):
+            words = numpy.array(words)
+
         # Tail optimization does not help with very large vocabularies
         if len(words) > vocabulary_max * 2:
             indices = numpy.argpartition(weights, len(weights) - vocabulary_max)
             indices = indices[-vocabulary_max:]
-            try:
-                words = words[indices]
-            except TypeError:
-                words = numpy.array(words)[indices]
+            words = words[indices]
             weights = weights[indices]
             return words, weights
 
