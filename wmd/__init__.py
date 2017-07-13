@@ -439,6 +439,7 @@ class WMD(object):
 
         :return: None
         """
+        self._log.info("Caching the centroids...")
         keys = []
         _, words, _ = self.nbow[next(iter(self.nbow))]
         centroids = numpy.zeros(
