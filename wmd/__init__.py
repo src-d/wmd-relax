@@ -7,7 +7,7 @@ import sys
 from time import time
 import numpy
 
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.dirname(__file__))  # nopep8
 import libwmdrelax
 del sys.path[0]
 
@@ -18,7 +18,7 @@ class TailVocabularyOptimizer(object):
     """
     Implements the distribution tail elimination vocabulary reduction strategy.
     See :py:attr:`wmd.WMD.vocabulary_optimizer`.
-    
+
     .. automethod:: __init__
     .. automethod:: __call__
     """
@@ -37,7 +37,7 @@ class TailVocabularyOptimizer(object):
         """
         Gets the current value of the minimum size ratio which enables the
         optimization.
-    
+
         :return: trigger_ratio.
         :rtype: float.
         """
@@ -86,8 +86,8 @@ class TailVocabularyOptimizer(object):
                           numpy.log(weights[trend_start:trend_finish]),
                           1)
         exp_z = numpy.exp(z[1] + z[0] * numpy.arange(len(weights)))
-        avg_error = numpy.abs(weights[trend_start:trend_finish]
-                              - exp_z[trend_start:trend_finish]).mean()
+        avg_error = numpy.abs(weights[trend_start:trend_finish] -
+                              exp_z[trend_start:trend_finish]).mean()
         tail_size = numpy.argmax((numpy.abs(weights - exp_z) < avg_error)[::-1])
         weights = weights[:-tail_size][:vocabulary_max]
         words = words[sorter[:-tail_size]][:vocabulary_max]
@@ -98,13 +98,13 @@ class TailVocabularyOptimizer(object):
 class WMD(object):
     """
     The main class to work with Word Mover's Distance.
-    The details are in the paper `From Word Embeddings To Document Distances <http://www.cs.cornell.edu/~kilian/papers/wmd_metric.pdf>`_
+    The details are in the paper `From Word Embeddings To Document Distances <http://www.cs.cornell.edu/~kilian/papers/wmd_metric.pdf>`
     by Matt Kusner, Yu Sun, Nicholas Kolkin and Kilian Weinberger.
     To calculate the nearest neighbors by WMD, use
     :func:`~wmd.WMD.nearest_neighbors()`.
-    
+
     .. automethod:: __init__
-    """
+    """  # nopep8
     def __init__(self, embeddings, nbow, vocabulary_min=50, vocabulary_max=500,
                  vocabulary_optimizer=TailVocabularyOptimizer(),
                  verbosity=logging.INFO, main_loop_log_interval=60):
@@ -416,7 +416,7 @@ class WMD(object):
         for i in range(len(dists)):
             dists[i, i] = 0
         return libwmdrelax.emd_relaxed(w1, w2, dists, self._relax_cache), \
-               w1, w2, dists
+            w1, w2, dists
 
     def _WMD_batch(self, words1, weights1, i2):
         joint, w1, w2 = self._common_vocabulary_batch(words1, weights1, i2)
@@ -475,7 +475,7 @@ class WMD(object):
         :param throw: If true, when an invalid sample is evaluated, an \
                       exception is thrown instead of logging.
         :type origin: suitable for :py:attr:`~wmd.WMD.nbow`
-        :type k: int 
+        :type k: int
         :type early_stop: float
         :type max_time: int
         :type skipped_stop: float
@@ -484,7 +484,7 @@ class WMD(object):
                  is a sample identifier, the second is the WMD. This list \
                  is sorted in distance ascending order, so the first tuple is \
                  the closest sample.
-                 
+
         :raises ValueError: if the queried entity has too small vocabulary \
                             (see :py:attr:`~wmd.WMD.vocabulary_min`).
         :raises RuntimeError: if the native code which calculates the EMD fails.
@@ -585,21 +585,21 @@ class WMD(object):
         """
         This guy is needed for the integration with `spaCy <https://spacy.io>`_.
         Use it like this:
-        
+
         ::
-    
+
            nlp = spacy.load('en', create_pipeline=wmd.WMD.create_spacy_pipeline)
-        
+
         It defines :func:`~wmd.WMD.SpacySimilarityHook.compute_similarity()` \
         method which is called by spaCy over pairs of
         `documents <https://spacy.io/docs/api/doc>`_.
-        
+
         .. automethod:: wmd::WMD.SpacySimilarityHook.__init__
         """
         def __init__(self, nlp, **kwargs):
             """
             Initializes a new instance of SpacySimilarityHook class.
-    
+
             :param nlp: `spaCy language object <https://spacy.io/docs/api/language>`_.
             :param ignore_stops: Indicates whether to ignore the stop words.
             :param only_alpha: Indicates whether only alpha tokens must be used.
@@ -660,17 +660,16 @@ class WMD(object):
             w /= w.sum()
             return w
 
-
     @classmethod
     def create_spacy_pipeline(cls, nlp, **kwargs):
         """
         Provides the integration with `spaCy <https://spacy.io>`_. Use this the
         following way:
-        
+
         ::
 
            nlp = spacy.load('en', create_pipeline=wmd.WMD.create_spacy_pipeline)
-        
+
         Please note that if you are going to search for the nearest documents
         then you should use :func:`~wmd.WMD.nearest_neighbors()` instead of
         evaluating multiple WMDs pairwise, as the former is much optimized and

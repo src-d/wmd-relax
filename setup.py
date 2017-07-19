@@ -1,6 +1,12 @@
 from setuptools import setup, Extension
 import platform
-import numpy
+try:
+    import numpy
+except ImportError as e:
+    print("=" * 80)
+    print("You need to install numpy *separately* and *before* installing this package(s).")
+    print("=" * 80)
+    raise e from None
 
 
 PACKAGE = "wmd"
@@ -23,7 +29,7 @@ LD_FLAGS = {
 setup(
     name=PACKAGE,
     description="Accelerated functions to calculate Word Mover's Distance",
-    version="1.2.5",
+    version="1.2.6",
     license="MIT",
     author="source{d}",
     author_email="vadim@sourced.tech",
