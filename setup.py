@@ -30,7 +30,7 @@ setup(
     name=PACKAGE,
     description="Accelerated functions to calculate Word Mover's Distance",
     version="1.2.6",
-    license="MIT",
+    license="Apache Software License",
     author="source{d}",
     author_email="vadim@sourced.tech",
     url="https://github.com/src-d/wmd-relax",
@@ -44,11 +44,12 @@ setup(
         extra_link_args=LD_FLAGS[platform.system()],
         include_dirs=[numpy.get_include(), "or-tools/src"])],
     packages=[PACKAGE],
+    setup_requires=["numpy"],  # does not really help - we need it to get_include()
     install_requires=["numpy"],
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
-        "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: Apache Software License",
         "Operating System :: POSIX :: Linux",
         "Topic :: Scientific/Engineering :: Information Analysis",
         "Programming Language :: Python :: 3.4",

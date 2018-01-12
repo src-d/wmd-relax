@@ -99,8 +99,11 @@ make html
 
 The files are in `doc/doxyhtml` and `doc/html` directories.
 
-### License
+### Contributions
 
-MIT.
+...are welcome! See [CONTRIBUTING](CONTRIBUTING.md) and [code of conduct](CODE_OF_CONDUCT.md).
+
+### License
+[Apache 2.0](LICENSE.md)
 
 #### README {#ignore_this_doxygen_anchor}
