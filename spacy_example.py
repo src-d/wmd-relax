@@ -11,7 +11,7 @@ from wmd import WMD
 
 # Load English tokenizer, tagger, parser, NER and word vectors
 print("loading spaCy")
-nlp = spacy.load('en')
+nlp = spacy.load("en")
 
 # List of page names we will fetch from Wikipedia and query for similarity
 titles = sys.argv[1:] or ["Germany", "Spain", "Google"]
@@ -31,6 +31,7 @@ for title in titles:
     documents[title] = (title, [orths[t] for t in sorted_words],
                         numpy.array([words[t] for t in sorted_words],
                                     dtype=numpy.float32))
+
 
 # Hook in WMD
 class SpacyEmbeddings(object):

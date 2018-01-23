@@ -368,6 +368,10 @@ class WMD(object):
 
     def _get_vocabulary(self, index):
         _, words, weights = self.nbow[index]
+        if not isinstance(words, numpy.ndarray):
+            words = numpy.array(words, dtype=numpy.int64)
+        if not isinstance(weights, numpy.ndarray):
+            weights = numpy.array(weights, dtype=numpy.float32)
         if self.vocabulary_optimizer is not None:
             words, weights = self.vocabulary_optimizer(
                 words, weights, self.vocabulary_max)
