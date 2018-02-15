@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <cmath>
 #include <algorithm>
+#include <string>
 
 #include "cache.h"
 #include "graph/min_cost_flow.h"

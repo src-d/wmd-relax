@@ -1,6 +1,4 @@
-[![Build Status](https://travis-ci.org/src-d/wmd-relax.svg?branch=master)](https://travis-ci.org/src-d/wmd-relax) [![PyPI](https://img.shields.io/pypi/v/wmd.svg)](https://pypi.python.org/pypi/wmd)
-
-Fast Word Mover's Distance
+Fast Word Mover's Distance [![Build Status](https://travis-ci.org/src-d/wmd-relax.svg?branch=master)](https://travis-ci.org/src-d/wmd-relax) [![PyPI](https://img.shields.io/pypi/v/wmd.svg)](https://pypi.python.org/pypi/wmd) [![codecov](https://codecov.io/github/src-d/wmd-relax/coverage.svg)](https://codecov.io/gh/src-d/wmd-relax)
 ==========================
 
 Calculates Word Mover's Distance as described in
