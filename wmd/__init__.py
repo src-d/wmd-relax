@@ -89,8 +89,8 @@ class TailVocabularyOptimizer(object):
         avg_error = numpy.abs(weights[trend_start:trend_finish] -
                               exp_z[trend_start:trend_finish]).mean()
         tail_size = numpy.argmax((numpy.abs(weights - exp_z) < avg_error)[::-1])
-        weights = weights[:-tail_size][:vocabulary_max]
-        words = words[sorter[:-tail_size]][:vocabulary_max]
+        weights = weights[:len(weights)-tail_size][:vocabulary_max]
+        words = words[sorter[:len(words)-tail_size]][:vocabulary_max]
 
         return words, weights
 
