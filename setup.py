@@ -13,16 +13,16 @@ PACKAGE = "wmd"
 
 CXX_FLAGS = {
    "Darwin": ["-std=c++11", "-march=native", "-ftree-vectorize", "-DNDEBUG",
-              "-Wno-sign-compare", "-flto"],
+              "-Wno-sign-compare", "-fPIC", "-flto"],
    "Linux": ["-fopenmp", "-std=c++11", "-march=native", "-ftree-vectorize",
-             "-DNDEBUG", "-Wno-sign-compare", "-flto"],
+             "-DNDEBUG", "-Wno-sign-compare", "-fPIC", "-flto"],
    "Windows": ["/openmp", "/std:c++latest", "/arch:AVX2", "/DNDEBUG", "/LTCG",
                "/GL"]
 }
 
 LD_FLAGS = {
-    "Darwin": ["-flto"],
-    "Linux": ["-flto"],
+    "Darwin": ["-fPIC", "-flto"],
+    "Linux": ["-fPIC", "-flto"],
     "Windows": ["/LTCG", "/GL"]
 }
 
