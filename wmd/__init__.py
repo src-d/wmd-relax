@@ -496,6 +496,8 @@ class WMD(object):
         # origin can be either a text query or an id
         if isinstance(origin, (tuple, list)):
             words, weights = origin
+            if not isinstance(words, (list, numpy.ndarray)):
+                words = list(words)
             weights = numpy.array(weights, dtype=numpy.float32)
             if len(words) > self.vocabulary_max:
                 words, weights = self.vocabulary_optimizer(
