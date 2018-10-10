@@ -8,6 +8,8 @@ except ImportError as e:
     print("=" * 80)
     raise e from None
 
+with open("README.md") as f:
+    long_description = f.read()
 
 PACKAGE = "wmd"
 
@@ -29,7 +31,9 @@ LD_FLAGS = {
 setup(
     name=PACKAGE,
     description="Accelerated functions to calculate Word Mover's Distance",
-    version="1.2.11",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    version="1.2.12",
     license="Apache Software License",
     author="source{d}",
     author_email="vadim@sourced.tech",
