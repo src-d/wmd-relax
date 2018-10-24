@@ -1,35 +1,24 @@
 sudo: false
-addons:
-  apt:
-    sources:
-    - ubuntu-toolchain-r-test
-    packages:
-    - gcc-5
-    - g++-5
-cache:
-  directories:
-    - $HOME/.cache/pip
+language: python
+cache: pip
 linux_before_install: &linux_before_install
   - pip3 install --upgrade pip
-  - export CC=gcc-5 CXX=g++-5
 matrix:
   include:
     - language: generic
       os: osx
       before_install:
         - brew update
+        - brew cask uninstall oclint
         - brew upgrade python
-    - language: python
-      os: linux
-      python: 3.4
+    - python: 3.4
+      dist: trusty
       before_install: *linux_before_install
-    - language: python
-      os: linux
-      python: 3.5
+    - python: 3.5
+      dist: xenial
       before_install: *linux_before_install
-    - language: python
-      os: linux
-      python: 3.6
+    - python: 3.6
+      dist: xenial
       before_install: *linux_before_install
 install:
   - pip3 install numpy scipy pycodestyle codecov
