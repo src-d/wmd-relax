@@ -594,7 +594,8 @@ class WMD(object):
 
         ::
 
-           nlp = spacy.load('en', create_pipeline=wmd.WMD.create_spacy_pipeline)
+           nlp = spacy.load('en_core_web_md')
+           nlp.add_pipe(wmd.WMD.SpacySimilarityHook(nlp), last=True)
 
         It defines :func:`~wmd.WMD.SpacySimilarityHook.compute_similarity()` \
         method which is called by spaCy over pairs of
@@ -624,6 +625,7 @@ class WMD(object):
         def __call__(self, doc):
             doc.user_hooks["similarity"] = self.compute_similarity
             doc.user_span_hooks["similarity"] = self.compute_similarity
+            return doc
 
         def compute_similarity(self, doc1, doc2):
             """

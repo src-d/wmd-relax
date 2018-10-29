@@ -56,7 +56,8 @@ It is possible to use this package with [spaCy](https://github.com/explosion/spa
 import spacy
 import wmd
 
-nlp = spacy.load('en', create_pipeline=wmd.WMD.create_spacy_pipeline)
+nlp = spacy.load('en_core_web_md')
+nlp.add_pipe(wmd.WMD.SpacySimilarityHook(nlp), last=True)
 doc1 = nlp("Politician speaks to the media in Illinois.")
 doc2 = nlp("The president greets the press in Chicago.")
 print(doc1.similarity(doc2))
