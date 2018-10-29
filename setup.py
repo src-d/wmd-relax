@@ -1,3 +1,4 @@
+import os.path
 from setuptools import setup, Extension
 import platform
 try:
@@ -8,7 +9,7 @@ except ImportError as e:
     print("=" * 80)
     raise e from None
 
-with open("README.md") as f:
+with open(os.path.join(os.path.dirname(__file__), "README.md")) as f:
     long_description = f.read()
 
 PACKAGE = "wmd"
