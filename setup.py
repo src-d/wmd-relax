@@ -9,7 +9,7 @@ except ImportError as e:
     print("=" * 80)
     raise e from None
 
-with open(os.path.join(os.path.dirname(__file__), "README.md")) as f:
+with open(os.path.join(os.path.dirname(__file__), "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
 PACKAGE = "wmd"
@@ -34,7 +34,7 @@ setup(
     description="Accelerated functions to calculate Word Mover's Distance",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    version="1.2.12",
+    version="1.3.0",
     license="Apache Software License",
     author="source{d}",
     author_email="vadim@sourced.tech",
