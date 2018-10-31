@@ -105,4 +105,4 @@ The files are in `doc/doxyhtml` and `doc/html` directories.
 ### License
 [Apache 2.0](LICENSE.md)
 
-#### README {#ignore_this_doxygen_anchor}
+
