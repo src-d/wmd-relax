@@ -1,4 +1,3 @@
-sudo: false
 language: python
 cache: pip
 linux_before_install: &linux_before_install
@@ -7,10 +6,6 @@ matrix:
   include:
     - language: generic
       os: osx
-      before_install:
-        - brew update
-        - brew cask uninstall oclint
-        - brew upgrade python
     - python: 3.4
       dist: trusty
       before_install: *linux_before_install
@@ -18,6 +13,9 @@ matrix:
       dist: xenial
       before_install: *linux_before_install
     - python: 3.6
+      dist: xenial
+      before_install: *linux_before_install
+    - python: 3.7
       dist: xenial
       before_install: *linux_before_install
 install:
