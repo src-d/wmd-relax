@@ -34,7 +34,7 @@ setup(
     description="Accelerated functions to calculate Word Mover's Distance",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    version="1.3.0",
+    version="1.3.1",
     license="Apache Software License",
     author="source{d}",
     author_email="vadim@sourced.tech",
