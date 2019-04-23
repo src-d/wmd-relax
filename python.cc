@@ -94,8 +94,7 @@ using pyarray = _pyobj<PyArrayObject>;
 template <class C>
 PyObject* emd_entry(
     PyObject *self, PyObject *args, PyObject *kwargs,
-    float (*payload)(const float*, const float*, const float*, uint32_t,
-                     const C&)) {
+    float (*payload)(const float*, const float*, const float*, uint32_t, const C&)) {
   PyObject *w1_obj, *w2_obj, *dist_obj, *cache_obj = Py_None;
   static const char *kwlist[] = {"w1", "w2", "dist", "cache", NULL};
   if (!PyArg_ParseTupleAndKeywords(
@@ -125,6 +124,9 @@ PyObject* emd_entry(
       return NULL;
     }
     size = dims[0];
+  }
+  if (size == 0) {
+    return Py_BuildValue("f", 1.0f);
   }
   pyarray* w1ptr = &w1_array;
   pyarray* w2ptr = &w2_array;
