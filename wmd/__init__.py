@@ -528,7 +528,7 @@ class WMD(object):
             keys, centroids = self._centroid_cache
             dists = numpy.linalg.norm(centroids - avg, axis=-1)
             queue = [(None, k) for k in keys[numpy.argsort(dists)]
-                     if k is not None]
+                     if k is not None and k != index]
         self._log.info("%.1f", time() - ts)
         self._log.info("First K WMD")
         ts = time()
