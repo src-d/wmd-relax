@@ -34,7 +34,7 @@ setup(
     description="Accelerated functions to calculate Word Mover's Distance",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    version="1.3.1",
+    version="1.3.2",
     license="Apache Software License",
     author="source{d}",
     author_email="vadim@sourced.tech",
@@ -52,7 +52,7 @@ setup(
     setup_requires=["numpy"],  # does not really help - we need it to get_include()
     install_requires=["numpy"],
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Stable",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: POSIX :: Linux",
