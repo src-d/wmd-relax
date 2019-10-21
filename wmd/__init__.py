@@ -382,6 +382,7 @@ class WMD(object):
 
     def _common_vocabulary_batch(self, words1, weights1, i2):
         words2, weights2 = self._get_vocabulary(i2)
+        words1 = numpy.asarray(words1).astype(words2.dtype)
         joint, index = numpy.unique(numpy.concatenate((words1, words2)),
                                     return_index=True)
         nw1 = numpy.zeros(len(joint), dtype=numpy.float32)
