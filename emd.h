@@ -1,3 +1,7 @@
+// fix windows compile
+#if defined(_MSC_VER) && !defined(__restrict__)
+#define __restrict__ __restrict
+#endif
 // fix inttypes for GCC
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
@@ -233,4 +237,3 @@ T emd(const T*__restrict__ w1, const T*__restrict__ w2,
 #endif
   return T((result / MASS_MULT) / COST_MULT);
 }
-
