@@ -19,7 +19,7 @@ CXX_FLAGS = {
               "-Wno-sign-compare", "-fPIC", "-flto"],
    "Linux": ["-fopenmp", "-std=c++11", "-march=native", "-ftree-vectorize",
              "-DNDEBUG", "-Wno-sign-compare", "-fPIC", "-flto"],
-   "Windows": ["/openmp", "/std:c++latest", "/arch:AVX2", "/DNDEBUG", "/LTCG",
+   "Windows": ["/openmp:experimental", "/std:c++latest", "/arch:AVX2", "/DNDEBUG", "/LTCG",
                "/GL"]
 }
 
@@ -28,6 +28,10 @@ LD_FLAGS = {
     "Linux": ["-fPIC", "-flto"],
     "Windows": ["/LTCG", "/GL"]
 }
+
+if platform.system() == "Windows" and platform.python_version_tuple() >= ("3", "5", "0"):
+    CXX_FLAGS["Windows"].append("/d2FH4-")
+    LD_FLAGS["Windows"].append("/d2:-FH4-")
 
 setup(
     name=PACKAGE,

@@ -1,3 +1,8 @@
+// fix windows compile
+#ifdef _MSC_VER
+#define __restrict__ __restrict
+#endif
+
 #pragma once
 
 #include <cstdint>

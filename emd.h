@@ -1,3 +1,7 @@
+// fix windows compile
+#ifdef _MSC_VER
+#define __restrict__ __restrict
+#endif
 // fix inttypes for GCC
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
