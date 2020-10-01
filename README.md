@@ -17,7 +17,7 @@ extension can be built as a generic shared library not related to Python at all.
 ### Installation
 
 ```
-pip3 install wmd
+pip3 install  name of module(wmd)
 ```
 Tested on Linux and macOS.
 
