@@ -15,10 +15,10 @@ with open(os.path.join(os.path.dirname(__file__), "README.md"), encoding="utf-8"
 PACKAGE = "wmd"
 
 CXX_FLAGS = {
-   "Darwin": ["-std=c++11", "-march=native", "-ftree-vectorize", "-DNDEBUG",
-              "-Wno-sign-compare", "-fPIC", "-flto"],
-   "Linux": ["-fopenmp", "-std=c++11", "-march=native", "-ftree-vectorize",
-             "-DNDEBUG", "-Wno-sign-compare", "-fPIC", "-flto"],
+   "Darwin": ["-std=c++11", "-march=x86-64", "-mmmx", "-msse", "-msse2", "-msse3",
+              "-ftree-vectorize", "-DNDEBUG", "-Wno-sign-compare", "-fPIC", "-flto"],
+   "Linux": ["-fopenmp", "-std=c++11", "-march=x86-64", "-mmmx", "-msse", "-msse2", "-msse3",
+             "-ftree-vectorize", "-DNDEBUG", "-Wno-sign-compare", "-fPIC", "-flto"],
    "Windows": ["/openmp", "/std:c++latest", "/arch:AVX2", "/DNDEBUG", "/LTCG",
                "/GL"]
 }
